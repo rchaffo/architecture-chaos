@@ -19,7 +19,7 @@ const fs   = require("fs");
 // ─── Ruta al JSON (busca en public/ relativo al proyecto Next.js) ─────────────
 const CONFIG_PATH = path.resolve(
   __dirname,
-  "../../public/configuracion_juego.json"
+  "../configuracion_juego.json"
 );
 
 // ─── Carga y validación básica ────────────────────────────────────────────────

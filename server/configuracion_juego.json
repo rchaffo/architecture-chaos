@@ -1,0 +1,1698 @@
+{
+  "_meta": {
+    "version": "2.0.0",
+    "tema": "Modernización Bancaria — Estándares BIAN & Open API",
+    "descripcion": "Archivo Data-Driven. Reemplazar para cambiar el tema sin tocar React. Fuente: BIAN Service Landscape v12 — bian.org",
+    "autor": "Architecture Chaos Project",
+    "fecha": "2026-01"
+  },
+  "configuracion_sala": {
+    "jugadores_min": 2,
+    "jugadores_max": 4,
+    "nombre_sistema_legacy": "CoreBanking Mainframe v7.2",
+    "salud_sistema_inicial": 100,
+    "nivel_panico_maximo": 100,
+    "intervalo_qte_min_seg": 45,
+    "intervalo_qte_max_seg": 120
+  },
+  "roles": [
+    {
+      "id": "project_manager",
+      "nombre": "Project Manager",
+      "alias_juego": "Triage Controller",
+      "color": "#6366F1",
+      "color_avatar": "#818CF8",
+      "descripcion": "Ordena la cola de tickets en el Backlog. Ajusta prioridades según urgencia e impacto.",
+      "responsabilidades": [
+        "Gestionar la cola de tickets (Backlog/Gantt)",
+        "Asignar prioridad Alta/Media/Baja a cada incidente",
+        "Mover tickets entre columnas: Backlog → En Progreso → Completado",
+        "Monitorear el tiempo global restante"
+      ],
+      "estacion": "triage_station",
+      "icono_forma": "hexagon"
+    },
+    {
+      "id": "analista",
+      "nombre": "Analista",
+      "alias_juego": "Chef de Requerimientos",
+      "color": "#F59E0B",
+      "color_avatar": "#FCD34D",
+      "descripcion": "El único jugador que lee el ticket completo. Dicta los síntomas técnicos al Buscador sin revelar la solución.",
+      "responsabilidades": [
+        "Leer el requerimiento completo del ticket activo",
+        "Identificar los dominios BIAN involucrados",
+        "Comunicar síntomas sin nombrar la solución directa",
+        "Validar que las piezas ensambladas resuelven el caso"
+      ],
+      "estacion": "analyst_station",
+      "icono_forma": "circle"
+    },
+    {
+      "id": "buscador",
+      "nombre": "Buscador",
+      "alias_juego": "Navegador de Directorio",
+      "color": "#10B981",
+      "color_avatar": "#34D399",
+      "descripcion": "Opera el directorio nativo de componentes para localizar las piezas correctas basándose en los síntomas del Analista.",
+      "responsabilidades": [
+        "Filtrar el Directorio por dominio, tipo y costo",
+        "Enviar los componentes candidatos al Integrador",
+        "Descartar componentes incorrectos para no saturar al Integrador",
+        "Actualizar filtros conforme el Analista da más pistas"
+      ],
+      "estacion": "directory_station",
+      "icono_forma": "square"
+    },
+    {
+      "id": "integrador",
+      "nombre": "Integrador",
+      "alias_juego": "Ensamblador de Arquitectura",
+      "color": "#EF4444",
+      "color_avatar": "#F87171",
+      "descripcion": "Recibe las piezas del Buscador y las ensambla en slots de orquestación respetando presupuesto y latencia.",
+      "responsabilidades": [
+        "Colocar componentes en los slots de la arquitectura",
+        "Vigilar que el costo total no supere el presupuesto del ticket",
+        "Verificar que la latencia total esté dentro del límite",
+        "Enviar el entregable final cuando todos los slots sean correctos"
+      ],
+      "estacion": "integrator_station",
+      "icono_forma": "diamond"
+    }
+  ],
+  "directorio_componentes": [
+    {
+      "id": "COMP-001",
+      "nombre": "API Gateway Enterprise",
+      "version": "Datacom 15.1 REST/SOAP Bridge",
+      "fabricante": "Datacom Systems",
+      "dominio_bian": "Infraestructura de Integración",
+      "business_area": "Operations",
+      "tipo": "GATEWAY",
+      "patron_funcional": "Administrar",
+      "tags": [
+        "REST",
+        "SOAP",
+        "mTLS",
+        "OAuth2",
+        "rate limiting",
+        "certificados",
+        "protocol bridge",
+        "gateway"
+      ],
+      "descripcion_corta": "Puerta de entrada universal. Traduce entre REST/SOAP/gRPC, gestiona autenticación y certificados TLS mutuos.",
+      "descripcion_tecnica": "Proxy inverso enterprise con protocol bridging REST↔SOAP/XML, soporte mTLS para conexiones SWIFT/SEPA, gestión dinámica de certificados X.509, OAuth 2.0/OIDC, rate limiting por tier y observabilidad OpenTelemetry. Compatible con IBM CICS WebServices.",
+      "costo_usd": 4500,
+      "latencia_add_ms": 45,
+      "nivel_riesgo": "BAJO",
+      "cumplimiento": [
+        "PCI-DSS",
+        "ISO 27001",
+        "SWIFT CSP"
+      ],
+      "color_ui": "#6366F1",
+      "forma_ui": "hexagon"
+    },
+    {
+      "id": "COMP-002",
+      "nombre": "Current Account Fulfillment",
+      "version": "BIAN v12 — Current Account",
+      "fabricante": "BIAN / Temenos T24",
+      "dominio_bian": "Current Account Fulfillment",
+      "business_area": "Operations",
+      "tipo": "SERVICIO_BIAN",
+      "patron_funcional": "Fulfillment",
+      "tags": [
+        "cuenta corriente",
+        "apertura de cuenta",
+        "saldo",
+        "transacciones",
+        "BIAN",
+        "core banking",
+        "ledger"
+      ],
+      "descripcion_corta": "Ciclo de vida completo de cuentas corrientes. Apertura, mantenimiento, cierre y consultas conforme BIAN.",
+      "descripcion_tecnica": "BIAN Service Domain 'Current Account Fulfillment'. Control Record 'Current Account Arrangement' con Behavior Qualifiers: Account Balance, Transaction Ledger, Interest Application, Overdraft Facility. Operaciones Initiate/Update/Execute/Retrieve en JSON:API. Sincroniza con General Ledger.",
+      "costo_usd": 5200,
+      "latencia_add_ms": 210,
+      "nivel_riesgo": "MEDIO",
+      "cumplimiento": [
+        "PSD2",
+        "GDPR",
+        "BIAN v12"
+      ],
+      "color_ui": "#8B5CF6",
+      "forma_ui": "hexagon"
+    },
+    {
+      "id": "COMP-003",
+      "nombre": "Customer Offer Management",
+      "version": "BIAN v12 — Customer Offer",
+      "fabricante": "BIAN / Temenos",
+      "dominio_bian": "Customer Offer",
+      "business_area": "Sales & Service",
+      "tipo": "SERVICIO_BIAN",
+      "patron_funcional": "Administrar",
+      "tags": [
+        "BIAN",
+        "customer",
+        "onboarding",
+        "oferta",
+        "journey",
+        "ciclo de vida",
+        "propuesta comercial"
+      ],
+      "descripcion_corta": "Orquesta el journey comercial desde la propuesta hasta el acuerdo. Coordina KYC, scoring y provisioning.",
+      "descripcion_tecnica": "BIAN Service Domain 'Customer Offer'. Estado de la oferta desde Proposed hasta Agreed. Workflow engine para KYC, credit scoring y account provisioning. Payload JSON:API. Integra con Party Data Management y Product Directory.",
+      "costo_usd": 3200,
+      "latencia_add_ms": 120,
+      "nivel_riesgo": "BAJO",
+      "cumplimiento": [
+        "BIAN v12",
+        "GDPR",
+        "Basel III"
+      ],
+      "color_ui": "#F59E0B",
+      "forma_ui": "circle"
+    },
+    {
+      "id": "COMP-004",
+      "nombre": "Party Data Management",
+      "version": "BIAN v12 — Party Reference Data",
+      "fabricante": "BIAN / Salesforce FS",
+      "dominio_bian": "Party Reference Data Management",
+      "business_area": "Customer Management",
+      "tipo": "SERVICIO_BIAN",
+      "patron_funcional": "Referencia",
+      "tags": [
+        "cliente",
+        "persona",
+        "datos maestros",
+        "party",
+        "KYC",
+        "identidad",
+        "MDM",
+        "golden record"
+      ],
+      "descripcion_corta": "Golden record del cliente. Centraliza datos de referencia de personas naturales y jurídicas con deduplicación.",
+      "descripcion_tecnica": "BIAN Service Domain 'Party Reference Data Management'. Control Record con Behavior Qualifiers: Identity, Address, Contact, Employment, Financial Profile. Sistema MDM maestro para todos los dominios. Búsqueda fuzzy y deduplicación automática.",
+      "costo_usd": 2800,
+      "latencia_add_ms": 80,
+      "nivel_riesgo": "BAJO",
+      "cumplimiento": [
+        "GDPR Art. 17",
+        "BIAN v12",
+        "Basel AML"
+      ],
+      "color_ui": "#06B6D4",
+      "forma_ui": "circle"
+    },
+    {
+      "id": "COMP-005",
+      "nombre": "Customer Profile",
+      "version": "BIAN v12 — Customer Profile",
+      "fabricante": "BIAN / Adobe FS",
+      "dominio_bian": "Customer Profile",
+      "business_area": "Customer Management",
+      "tipo": "SERVICIO_BIAN",
+      "patron_funcional": "Analizar",
+      "tags": [
+        "perfil cliente",
+        "segmentación",
+        "scoring",
+        "comportamiento",
+        "360",
+        "analytics",
+        "propensión",
+        "vista unificada"
+      ],
+      "descripcion_corta": "Vista 360° del cliente. Agrega comportamiento, segmentación, propensión de compra y scoring crediticio.",
+      "descripcion_tecnica": "BIAN Service Domain 'Customer Profile'. Consolida datos de Party Reference Data, Customer Event History y Transaction History. Control Record con: Risk Rating, Behavioral Segment, Product Propensity Scores, Lifetime Value, Relationship Score. Alimenta campañas y motores de oferta.",
+      "costo_usd": 3600,
+      "latencia_add_ms": 95,
+      "nivel_riesgo": "BAJO",
+      "cumplimiento": [
+        "GDPR",
+        "BIAN v12",
+        "MiFID II Suitability"
+      ],
+      "color_ui": "#0EA5E9",
+      "forma_ui": "circle"
+    },
+    {
+      "id": "COMP-006",
+      "nombre": "Payment Order",
+      "version": "BIAN v12 — Payment Order / ISO 20022",
+      "fabricante": "BIAN / Finastra",
+      "dominio_bian": "Payment Order",
+      "business_area": "Operations",
+      "tipo": "SERVICIO_BIAN",
+      "patron_funcional": "Procesar",
+      "tags": [
+        "pagos",
+        "orden de pago",
+        "transferencia",
+        "SEPA",
+        "ISO 20022",
+        "doméstico",
+        "instrucción"
+      ],
+      "descripcion_corta": "Captura y valida órdenes de pago domésticas y SEPA. Soporta mensajería ISO 20022 pacs.008/pacs.002.",
+      "descripcion_tecnica": "BIAN Service Domain 'Payment Order'. Captura instrucciones de pago, valida IBAN/BIC, aplica reglas de beneficiario. Soporta mensajes MX y transformación desde MT legacy. Cola de retry y gestión de estado: Pending, Submitted, Completed, Failed.",
+      "costo_usd": 3800,
+      "latencia_add_ms": 70,
+      "nivel_riesgo": "MEDIO",
+      "cumplimiento": [
+        "PSD2",
+        "ISO 20022",
+        "BIAN v12"
+      ],
+      "color_ui": "#10B981",
+      "forma_ui": "square"
+    },
+    {
+      "id": "COMP-007",
+      "nombre": "Payment Execution",
+      "version": "BIAN v12 — Payment Execution / SWIFT gpi",
+      "fabricante": "BIAN / Finastra Fusion",
+      "dominio_bian": "Payment Execution",
+      "business_area": "Operations",
+      "tipo": "SERVICIO_BIAN",
+      "patron_funcional": "Procesar",
+      "tags": [
+        "pagos",
+        "SWIFT",
+        "gpi",
+        "interbancario",
+        "ISO 20022",
+        "ejecución",
+        "corresponsal",
+        "Target2",
+        "SEPA"
+      ],
+      "descripcion_corta": "Motor de ejecución de pagos interbancarios. SWIFT gpi, Target2 y SEPA con trazabilidad UETR end-to-end.",
+      "descripcion_tecnica": "BIAN Service Domain 'Payment Execution'. Procesa pagos internacionales ISO 20022 con STP. UETR tracking SWIFT gpi, validación AML en tiempo real, settlement Target2/SEPA. Retry automático x3 con notificación de excepción.",
+      "costo_usd": 6800,
+      "latencia_add_ms": 95,
+      "nivel_riesgo": "ALTO",
+      "cumplimiento": [
+        "BIAN v12",
+        "ISO 20022",
+        "PSD2",
+        "SWIFT CSP"
+      ],
+      "color_ui": "#EF4444",
+      "forma_ui": "diamond"
+    },
+    {
+      "id": "COMP-008",
+      "nombre": "Fraud Detection",
+      "version": "BIAN v12 — Fraud Detection / ML",
+      "fabricante": "BIAN / FICO",
+      "dominio_bian": "Fraud Detection",
+      "business_area": "Risk & Compliance",
+      "tipo": "SERVICIO_BIAN",
+      "patron_funcional": "Controlar",
+      "tags": [
+        "fraude",
+        "detección",
+        "ML",
+        "scoring",
+        "tiempo real",
+        "tarjetas",
+        "riesgo",
+        "anomalías",
+        "ALLOW",
+        "BLOCK"
+      ],
+      "descripcion_corta": "Scoring de fraude ML en tiempo real. Analiza patrones de transacción y emite señal ALLOW/REVIEW/BLOCK.",
+      "descripcion_tecnica": "BIAN Service Domain 'Fraud Detection'. Evalúa transacciones contra modelos ML (gradient boosting + reglas). Fraud Score 0–100. Behavior Qualifiers: Transaction Analysis, Device Profile, Behavioral Biometrics, Network Analysis. Latencia media <50ms. Feedback loop desde Customer Case.",
+      "costo_usd": 4200,
+      "latencia_add_ms": 50,
+      "nivel_riesgo": "BAJO",
+      "cumplimiento": [
+        "PCI-DSS",
+        "BIAN v12",
+        "EBA Guidelines on Fraud"
+      ],
+      "color_ui": "#F97316",
+      "forma_ui": "diamond"
+    },
+    {
+      "id": "COMP-009",
+      "nombre": "AML Transaction Monitoring",
+      "version": "BIAN v12 — AML Monitoring",
+      "fabricante": "BIAN / Comply Advantage",
+      "dominio_bian": "AML Transaction Monitoring",
+      "business_area": "Risk & Compliance",
+      "tipo": "SERVICIO_BIAN",
+      "patron_funcional": "Controlar",
+      "tags": [
+        "AML",
+        "KYC",
+        "OFAC",
+        "lavado",
+        "regulatorio",
+        "compliance",
+        "screening",
+        "SAR",
+        "lista negra"
+      ],
+      "descripcion_corta": "Monitoreo AML/CTF en tiempo real. Screening OFAC/ONU/Europol. Genera Suspicious Activity Reports automáticos.",
+      "descripcion_tecnica": "BIAN Service Domain 'AML Transaction Monitoring'. Screening contra +1000 listas sancionadas, PEP check, adverse media NLP. Control Record 'AML Assessment' con Risk Rating y evidencia para SAR. Decisión <2s. Auditoría completa para reguladores.",
+      "costo_usd": 3900,
+      "latencia_add_ms": 180,
+      "nivel_riesgo": "BAJO",
+      "cumplimiento": [
+        "FATF",
+        "4AMLD",
+        "5AMLD",
+        "GDPR Art. 22",
+        "Basel AML"
+      ],
+      "color_ui": "#EF4444",
+      "forma_ui": "square"
+    },
+    {
+      "id": "COMP-010",
+      "nombre": "Credit Risk Operations",
+      "version": "BIAN v12 — Credit Risk",
+      "fabricante": "BIAN / Moody's Analytics",
+      "dominio_bian": "Credit Risk Operations",
+      "business_area": "Risk & Compliance",
+      "tipo": "SERVICIO_BIAN",
+      "patron_funcional": "Controlar",
+      "tags": [
+        "crédito",
+        "riesgo",
+        "PD",
+        "LGD",
+        "EAD",
+        "límite crediticio",
+        "Basel III",
+        "IFRS9",
+        "concentración"
+      ],
+      "descripcion_corta": "Motor de riesgo crediticio. Calcula PD/LGD/EAD, asigna límites por contraparte y detecta concentración.",
+      "descripcion_tecnica": "BIAN Service Domain 'Credit Risk Operations'. Control Record 'Credit Risk Assessment' con PD, LGD y EAD por cliente y portafolio. Behavior Qualifiers: Limit Management, Collateral Assessment, Counterparty Risk, Concentration Risk. Alimenta provisiones IFRS 9.",
+      "costo_usd": 5500,
+      "latencia_add_ms": 140,
+      "nivel_riesgo": "MEDIO",
+      "cumplimiento": [
+        "Basel III",
+        "IFRS 9",
+        "EBA CRR",
+        "BIAN v12"
+      ],
+      "color_ui": "#DC2626",
+      "forma_ui": "diamond"
+    },
+    {
+      "id": "COMP-011",
+      "nombre": "Savings Account Fulfillment",
+      "version": "BIAN v12 — Savings Account",
+      "fabricante": "BIAN / Temenos T24",
+      "dominio_bian": "Savings Account Fulfillment",
+      "business_area": "Operations",
+      "tipo": "SERVICIO_BIAN",
+      "patron_funcional": "Fulfillment",
+      "tags": [
+        "ahorro",
+        "cuenta de ahorro",
+        "intereses",
+        "plazo fijo",
+        "depósito",
+        "captación",
+        "renovación automática"
+      ],
+      "descripcion_corta": "Ciclo de vida de cuentas de ahorro y depósitos a plazo. Cálculo automático de intereses y renovación.",
+      "descripcion_tecnica": "BIAN Service Domain 'Savings Account Fulfillment'. Control Record con Behavior Qualifiers: Interest Calculation, Withholding Tax, Minimum Balance, Maturity Processing, Auto-Renewal. Productos: savings, time deposit, structured deposit. Integra con GL y Regulatory Compliance.",
+      "costo_usd": 4100,
+      "latencia_add_ms": 190,
+      "nivel_riesgo": "BAJO",
+      "cumplimiento": [
+        "PSD2",
+        "BIAN v12",
+        "Deposit Guarantee Schemes"
+      ],
+      "color_ui": "#0891B2",
+      "forma_ui": "hexagon"
+    },
+    {
+      "id": "COMP-012",
+      "nombre": "Customer Case Management",
+      "version": "BIAN v12 — Customer Case",
+      "fabricante": "BIAN / ServiceNow FS",
+      "dominio_bian": "Customer Case",
+      "business_area": "Sales & Service",
+      "tipo": "SERVICIO_BIAN",
+      "patron_funcional": "Procesar",
+      "tags": [
+        "caso",
+        "reclamación",
+        "queja",
+        "incidente",
+        "soporte",
+        "disputa",
+        "fraude reportado",
+        "resolución"
+      ],
+      "descripcion_corta": "Gestión integral de casos: reclamaciones, disputas, fraude reportado e incidentes de servicio con SLA.",
+      "descripcion_tecnica": "BIAN Service Domain 'Customer Case'. Control Record desde Open hasta Closed. Behavior Qualifiers: Case Analysis, Resolution, Third Party, Correspondence. SLA configurable por tipo. Integra con Fraud Detection para disputas y con Regulatory Compliance para reporte de quejas.",
+      "costo_usd": 2600,
+      "latencia_add_ms": 85,
+      "nivel_riesgo": "BAJO",
+      "cumplimiento": [
+        "PSD2 Dispute Resolution",
+        "GDPR",
+        "FCA DISP",
+        "BIAN v12"
+      ],
+      "color_ui": "#7C3AED",
+      "forma_ui": "circle"
+    },
+    {
+      "id": "COMP-013",
+      "nombre": "Product Directory",
+      "version": "BIAN v12 — Product Directory",
+      "fabricante": "BIAN / Mambu",
+      "dominio_bian": "Product Directory",
+      "business_area": "Sales & Service",
+      "tipo": "SERVICIO_BIAN",
+      "patron_funcional": "Referencia",
+      "tags": [
+        "productos",
+        "catálogo",
+        "tarifas",
+        "pricing",
+        "términos",
+        "condiciones",
+        "elegibilidad",
+        "oferta comercial"
+      ],
+      "descripcion_corta": "Catálogo maestro de productos bancarios con términos, tarifas y elegibilidad por segmento. Versionado por fecha.",
+      "descripcion_tecnica": "BIAN Service Domain 'Product Directory'. Control Record 'Product Directory Entry' para todos los productos. Behavior Qualifiers: Product Definition, Pricing Terms, Eligibility Criteria, Regulatory Terms, Channel Availability. Versionado con efectividad temporal. Alimenta Customer Offer y Sales Product Agreement.",
+      "costo_usd": 1800,
+      "latencia_add_ms": 30,
+      "nivel_riesgo": "BAJO",
+      "cumplimiento": [
+        "PSD2 Transparency",
+        "MiFID II",
+        "BIAN v12"
+      ],
+      "color_ui": "#059669",
+      "forma_ui": "square"
+    },
+    {
+      "id": "COMP-014",
+      "nombre": "Card Transaction Processing",
+      "version": "BIAN v12 — Card Transaction",
+      "fabricante": "BIAN / Worldline",
+      "dominio_bian": "Card Transaction Processing",
+      "business_area": "Operations",
+      "tipo": "SERVICIO_BIAN",
+      "patron_funcional": "Procesar",
+      "tags": [
+        "tarjeta",
+        "visa",
+        "mastercard",
+        "EMV",
+        "chip",
+        "NFC",
+        "POS",
+        "ecommerce",
+        "autorización",
+        "3DS",
+        "tokenización"
+      ],
+      "descripcion_corta": "Motor de autorización de tarjetas. Soporta EMV chip, NFC/contactless y 3DS2 para e-commerce.",
+      "descripcion_tecnica": "BIAN Service Domain 'Card Transaction Processing'. Control Record con Behavior Qualifiers: Authorization, Authentication (3DS2), Clearing, Settlement, Chargeback. Integra con Fraud Detection para scoring en tiempo de autorización (<150ms). Tokenización PCI-DSS conforme.",
+      "costo_usd": 5800,
+      "latencia_add_ms": 55,
+      "nivel_riesgo": "ALTO",
+      "cumplimiento": [
+        "PCI-DSS Level 1",
+        "EMV Co.",
+        "3DS2 (PSD2 SCA)",
+        "BIAN v12"
+      ],
+      "color_ui": "#D97706",
+      "forma_ui": "diamond"
+    },
+    {
+      "id": "COMP-015",
+      "nombre": "Regulatory Compliance",
+      "version": "BIAN v12 — Regulatory Compliance",
+      "fabricante": "BIAN / Wolters Kluwer",
+      "dominio_bian": "Regulatory Compliance",
+      "business_area": "Risk & Compliance",
+      "tipo": "SERVICIO_BIAN",
+      "patron_funcional": "Controlar",
+      "tags": [
+        "regulatorio",
+        "compliance",
+        "FINREP",
+        "COREP",
+        "BCE",
+        "regulador",
+        "FATCA",
+        "CRS",
+        "reporte",
+        "supervisión"
+      ],
+      "descripcion_corta": "Motor de compliance regulatorio. Genera reportes automáticos FINREP/COREP para el BCE y reguladores nacionales.",
+      "descripcion_tecnica": "BIAN Service Domain 'Regulatory Compliance'. Control Record con Behavior Qualifiers: Regulatory Reporting (FINREP/COREP), Tax Compliance (FATCA/CRS), Conduct Compliance, Supervisory Reporting. Calendario automático de entregas y alertas de incumplimiento.",
+      "costo_usd": 4800,
+      "latencia_add_ms": 200,
+      "nivel_riesgo": "BAJO",
+      "cumplimiento": [
+        "CRR/CRDIV",
+        "FINREP",
+        "COREP",
+        "FATCA",
+        "CRS",
+        "BIAN v12"
+      ],
+      "color_ui": "#6B7280",
+      "forma_ui": "square"
+    },
+    {
+      "id": "COMP-016",
+      "nombre": "Correspondent Bank",
+      "version": "BIAN v12 — Correspondent Bank",
+      "fabricante": "BIAN / BNY Mellon API",
+      "dominio_bian": "Correspondent Bank",
+      "business_area": "Operations",
+      "tipo": "SERVICIO_BIAN",
+      "patron_funcional": "Administrar",
+      "tags": [
+        "corresponsal",
+        "banco corresponsal",
+        "nostro",
+        "vostro",
+        "SWIFT",
+        "interbancario",
+        "liquidación",
+        "posición"
+      ],
+      "descripcion_corta": "Gestión de relaciones con bancos corresponsales. Cuentas Nostro/Vostro, acuerdos y posiciones de liquidez.",
+      "descripcion_tecnica": "BIAN Service Domain 'Correspondent Bank'. Control Record 'Correspondent Bank Relationship' con Behavior Qualifiers: Agreement, Account Management (Nostro/Vostro), Position Management, Settlement Obligation. Enrutamiento de pagos internacionales y gestión de exposición FX.",
+      "costo_usd": 5100,
+      "latencia_add_ms": 110,
+      "nivel_riesgo": "ALTO",
+      "cumplimiento": [
+        "SWIFT CSP",
+        "Basel III LCR",
+        "BIAN v12",
+        "FATF Correspondent Banking"
+      ],
+      "color_ui": "#1D4ED8",
+      "forma_ui": "hexagon"
+    },
+    {
+      "id": "COMP-017",
+      "nombre": "Customer Event History",
+      "version": "BIAN v12 — Customer Event History",
+      "fabricante": "BIAN / Snowflake FS",
+      "dominio_bian": "Customer Event History",
+      "business_area": "Customer Management",
+      "tipo": "SERVICIO_BIAN",
+      "patron_funcional": "Registrar",
+      "tags": [
+        "historial",
+        "eventos",
+        "audit trail",
+        "interacciones",
+        "canal",
+        "omnicanal",
+        "trazabilidad",
+        "log"
+      ],
+      "descripcion_corta": "Registro inmutable de todos los eventos del ciclo de vida del cliente. Audit trail para compliance y analítica.",
+      "descripcion_tecnica": "BIAN Service Domain 'Customer Event History'. Control Record 'Customer Event Log' append-only. Registra transacciones, interacciones de canal, cambios de datos, alertas, quejas y campañas. Event sourcing. Alimenta Customer Profile con datos de comportamiento.",
+      "costo_usd": 2200,
+      "latencia_add_ms": 40,
+      "nivel_riesgo": "BAJO",
+      "cumplimiento": [
+        "GDPR Art. 30",
+        "PSD2 Audit",
+        "BIAN v12"
+      ],
+      "color_ui": "#4F46E5",
+      "forma_ui": "circle"
+    },
+    {
+      "id": "COMP-018",
+      "nombre": "CICS Gateway Adapter",
+      "version": "IBM z/OS CICS WebServices Adapter v4",
+      "fabricante": "IBM",
+      "dominio_bian": "Infraestructura Legacy",
+      "business_area": "Operations",
+      "tipo": "ADAPTADOR_LEGACY",
+      "patron_funcional": "Administrar",
+      "tags": [
+        "CICS",
+        "mainframe",
+        "IBM",
+        "z/OS",
+        "legacy",
+        "COBOL",
+        "adaptador",
+        "SOAP",
+        "modernización",
+        "strangler fig"
+      ],
+      "descripcion_corta": "Puente con mainframe IBM z/OS CICS. Expone servicios COBOL como REST/SOAP sin modificar código legacy.",
+      "descripcion_tecnica": "Adaptador certificado IBM para CICS Transaction Server en z/OS. Convierte transacciones CICS (COMMAREA/Channel) a REST/SOAP estándar sin modificar COBOL. Soporta APPC/LU6.2, MQ Series y TCP/IP. Connection pooling, failover automático entre LPARs y tracing distribuido. Patrón Strangler Fig.",
+      "costo_usd": 7200,
+      "latencia_add_ms": 290,
+      "nivel_riesgo": "ALTO",
+      "cumplimiento": [
+        "SOC2 Type II",
+        "PCI-DSS",
+        "ISO 27001"
+      ],
+      "color_ui": "#64748B",
+      "forma_ui": "square"
+    }
+  ],
+  "escenarios": [
+    {
+      "id": "ESC-001",
+      "nombre": "Crisis de Onboarding Digital",
+      "dificultad": "FÁCIL",
+      "categoria": "Customer Journey / Open API",
+      "tiempo_limite_seg": 270,
+      "presupuesto_usd": 16000,
+      "latencia_maxima_ms": 900,
+      "penalizacion_panico": 12,
+      "descripcion_publica": "47 quejas en 72 horas: los clientes no pueden completar la apertura de cuenta corriente online. El proceso falla silenciosamente tras el paso de verificación de identidad. El equipo digital exige solución antes de la campaña de verano.",
+      "descripcion_analista_solo": "CONFIDENCIAL — Solo el Analista. El sistema legacy DatacomCore v14 solo habla SOAP, no REST. Solución en 4 piezas ordenadas: (1) API Gateway que traduzca REST→SOAP en la capa de entrada. (2) Party Data Management para centralizar el golden record del cliente antes de continuar el flujo. (3) Customer Offer para orquestar el journey de contratación con workflow KYC end-to-end. (4) Current Account Fulfillment para abrir físicamente la cuenta en el core banking. Presupuesto $16.000, latencia máxima 900ms.",
+      "sintomas_para_buscador": [
+        "El sistema de destino solo entiende SOAP, no acepta llamadas REST modernas",
+        "Necesitamos un maestro de datos que centralice y limpie la identidad del cliente",
+        "Hay un orquestador de ciclo comercial que coordina el journey de contratación completo",
+        "El destino final es el servicio que abre físicamente una cuenta corriente en el core"
+      ],
+      "slots_solucion": [
+        {
+          "id": "slot_1",
+          "nombre": "Protocol Bridge REST→SOAP",
+          "orden": 1
+        },
+        {
+          "id": "slot_2",
+          "nombre": "Master Data del Cliente",
+          "orden": 2
+        },
+        {
+          "id": "slot_3",
+          "nombre": "Orquestación Comercial",
+          "orden": 3
+        },
+        {
+          "id": "slot_4",
+          "nombre": "Core — Cuenta Corriente",
+          "orden": 4
+        }
+      ],
+      "solucion_correcta": {
+        "slot_1": "COMP-001",
+        "slot_2": "COMP-004",
+        "slot_3": "COMP-003",
+        "slot_4": "COMP-002"
+      },
+      "costo_total_solucion": 15700,
+      "latencia_total_solucion_ms": 455,
+      "puntaje_base": 1200,
+      "bonus_tiempo": 400,
+      "explicacion_solucion": "API Gateway (COMP-001) traduce REST→SOAP. Party Data Management (COMP-004) centraliza el golden record. Customer Offer (COMP-003) orquesta el KYC journey. Current Account Fulfillment (COMP-002) registra la cuenta. Total: $15.700 y 455ms — dentro de límites."
+    },
+    {
+      "id": "ESC-002",
+      "nombre": "Colapso de Pagos SWIFT",
+      "dificultad": "MEDIA",
+      "categoria": "Pagos Internacionales / Legacy",
+      "tiempo_limite_seg": 210,
+      "presupuesto_usd": 24000,
+      "latencia_maxima_ms": 650,
+      "penalizacion_panico": 20,
+      "descripcion_publica": "ALERTA CRÍTICA: Los pagos SWIFT llevan 3 horas con fallo intermitente. Certificado mTLS expirado. Los corresponsales extranjeros retienen transacciones. Pérdida estimada: $85.000/hora.",
+      "descripcion_analista_solo": "CONFIDENCIAL — Solo el Analista. El CICS Gateway legacy perdió conectividad SWIFT por certificado vencido. Flujo correcto: (1) API Gateway con mTLS renovado para restablecer el canal SWIFT cifrado. (2) Payment Execution BIAN para orquestar el pago interbancario con mensajería ISO 20022 y UETR. (3) Correspondent Bank para confirmar la posición Nostro/Vostro con el banco destino. (4) CICS Gateway Adapter para mantener compatibilidad con el mainframe z/OS sin reescribirlo. Presupuesto $24.000, latencia máx 650ms.",
+      "sintomas_para_buscador": [
+        "El canal bancario internacional falla por certificados de seguridad vencidos",
+        "Necesitamos el motor que ejecuta pagos interbancarios con mensajería ISO 20022",
+        "Hay un servicio BIAN que gestiona las cuentas Nostro/Vostro con bancos corresponsales",
+        "El backend es un mainframe IBM z/OS que no se puede reemplazar, solo adaptar"
+      ],
+      "slots_solucion": [
+        {
+          "id": "slot_1",
+          "nombre": "Canal Seguro mTLS/SWIFT",
+          "orden": 1
+        },
+        {
+          "id": "slot_2",
+          "nombre": "Motor de Ejecución de Pago",
+          "orden": 2
+        },
+        {
+          "id": "slot_3",
+          "nombre": "Gestión Banco Corresponsal",
+          "orden": 3
+        },
+        {
+          "id": "slot_4",
+          "nombre": "Adaptador Mainframe z/OS",
+          "orden": 4
+        }
+      ],
+      "solucion_correcta": {
+        "slot_1": "COMP-001",
+        "slot_2": "COMP-007",
+        "slot_3": "COMP-016",
+        "slot_4": "COMP-018"
+      },
+      "costo_total_solucion": 23600,
+      "latencia_total_solucion_ms": 540,
+      "puntaje_base": 2000,
+      "bonus_tiempo": 700,
+      "explicacion_solucion": "API Gateway (COMP-001) restablece SWIFT con mTLS. Payment Execution (COMP-007) procesa ISO 20022 con UETR. Correspondent Bank (COMP-016) confirma Nostro/Vostro. CICS Adapter (COMP-018) preserva el mainframe. Total: $23.600 y 540ms."
+    },
+    {
+      "id": "ESC-003",
+      "nombre": "Brote de Fraude en Tarjetas EMV",
+      "dificultad": "MEDIA",
+      "categoria": "Fraude / Tarjetas / Riesgo",
+      "tiempo_limite_seg": 180,
+      "presupuesto_usd": 17000,
+      "latencia_maxima_ms": 500,
+      "penalizacion_panico": 22,
+      "descripcion_publica": "340 transacciones sospechosas en 2 horas en tarjetas EMV. Posible skimmer activo en red de cajeros. Clientes llaman para reportar cargos no reconocidos. El equipo de fraude pide acción inmediata.",
+      "descripcion_analista_solo": "CONFIDENCIAL — Solo el Analista. Arquitectura de respuesta en capas: (1) Card Transaction Processing como punto de interceptación de la transacción EMV/NFC para enrutar hacia el motor de fraude. (2) Fraud Detection con ML para bloquear intentos sospechosos en <150ms antes de autorizar. (3) AML Transaction Monitoring para detectar si hay una red de lavado detrás del patrón de fraude. (4) Customer Case Management para que agentes tramiten las reclamaciones de los clientes afectados. Presupuesto $17.000, latencia máxima 500ms — crítico para SLA de autorización.",
+      "sintomas_para_buscador": [
+        "El punto de interceptación es el motor que autoriza transacciones EMV chip y NFC contactless",
+        "Se necesita un scoring ML que responda en menos de 150 milisegundos",
+        "Hay que verificar si el patrón corresponde a una red de lavado de dinero organizada",
+        "Los clientes afectados están reclamando: necesitamos un sistema para gestionar sus casos"
+      ],
+      "slots_solucion": [
+        {
+          "id": "slot_1",
+          "nombre": "Motor de Transacción EMV/NFC",
+          "orden": 1
+        },
+        {
+          "id": "slot_2",
+          "nombre": "Scoring de Fraude ML",
+          "orden": 2
+        },
+        {
+          "id": "slot_3",
+          "nombre": "Monitoreo AML / Red de Lavado",
+          "orden": 3
+        },
+        {
+          "id": "slot_4",
+          "nombre": "Gestión de Casos de Reclamación",
+          "orden": 4
+        }
+      ],
+      "solucion_correcta": {
+        "slot_1": "COMP-014",
+        "slot_2": "COMP-008",
+        "slot_3": "COMP-009",
+        "slot_4": "COMP-012"
+      },
+      "costo_total_solucion": 16500,
+      "latencia_total_solucion_ms": 370,
+      "puntaje_base": 2200,
+      "bonus_tiempo": 700,
+      "explicacion_solucion": "Card Transaction Processing (COMP-014) intercepta y enruta la autorización EMV. Fraud Detection (COMP-008) aplica ML scoring en <50ms. AML Monitoring (COMP-009) detecta redes de lavado. Customer Case (COMP-012) gestiona las reclamaciones. Total: $16.500 y 370ms."
+    },
+    {
+      "id": "ESC-004",
+      "nombre": "Lanzamiento Regulatorio — Cuenta Ahorro Verde",
+      "dificultad": "ALTA",
+      "categoria": "Productos de Captación / Compliance",
+      "tiempo_limite_seg": 240,
+      "presupuesto_usd": 16000,
+      "latencia_maxima_ms": 950,
+      "penalizacion_panico": 18,
+      "descripcion_publica": "El regulador exige que el banco lance en 15 días una 'Cuenta de Ahorro Verde' con condiciones publicadas, apertura 100% digital y reportes mensuales al BCE. El equipo de producto no tiene arquitectura definida.",
+      "descripcion_analista_solo": "CONFIDENCIAL — Solo el Analista. Flujo de producto nuevo, no un incidente. Cuatro dominios en secuencia: (1) Product Directory para registrar oficialmente las condiciones y tarifas de la 'Cuenta Ahorro Verde' con vigencia temporal. (2) Customer Offer para orquestar el journey de contratación digital incluyendo verificación de elegibilidad. (3) Savings Account Fulfillment para gestionar el ciclo de vida de la cuenta: intereses, vencimiento y renovación automática. (4) Regulatory Compliance para generar los reportes FINREP mensuales automáticos para el BCE. Presupuesto $16.000, latencia máxima 950ms.",
+      "sintomas_para_buscador": [
+        "Primero hay que registrar el producto con sus tarifas oficiales y fecha de vigencia",
+        "El journey de contratación digital necesita un orquestador de oferta comercial con elegibilidad",
+        "El servicio que gestiona la cuenta de ahorro en sí: intereses, plazos y auto-renovación",
+        "Hay una obligación de reporte regulatorio mensual automático al banco central"
+      ],
+      "slots_solucion": [
+        {
+          "id": "slot_1",
+          "nombre": "Catálogo Oficial del Producto",
+          "orden": 1
+        },
+        {
+          "id": "slot_2",
+          "nombre": "Orquestación del Journey Digital",
+          "orden": 2
+        },
+        {
+          "id": "slot_3",
+          "nombre": "Core de Cuenta de Ahorro",
+          "orden": 3
+        },
+        {
+          "id": "slot_4",
+          "nombre": "Motor de Compliance y Reporte BCE",
+          "orden": 4
+        }
+      ],
+      "solucion_correcta": {
+        "slot_1": "COMP-013",
+        "slot_2": "COMP-003",
+        "slot_3": "COMP-011",
+        "slot_4": "COMP-015"
+      },
+      "costo_total_solucion": 13900,
+      "latencia_total_solucion_ms": 540,
+      "puntaje_base": 2000,
+      "bonus_tiempo": 600,
+      "explicacion_solucion": "Product Directory (COMP-013) registra las condiciones oficiales con vigencia. Customer Offer (COMP-003) orquesta la contratación digital. Savings Account Fulfillment (COMP-011) gestiona intereses y renovación. Regulatory Compliance (COMP-015) genera FINREP mensual para el BCE. Total: $13.900 y 540ms."
+    },
+    {
+      "id": "ESC-005",
+      "nombre": "Alerta de Riesgo Crediticio Corporativo",
+      "dificultad": "EXPERTO",
+      "categoria": "Riesgo Crediticio / Regulatorio / Analytics",
+      "tiempo_limite_seg": 200,
+      "presupuesto_usd": 17000,
+      "latencia_maxima_ms": 800,
+      "penalizacion_panico": 25,
+      "descripcion_publica": "El equipo de riesgos detecta concentración anómala en la cartera corporativa. El BCE solicita un informe de exposición crediticia en 48 horas. Sin datos unificados, el banco enfrenta una multa potencial de €2M.",
+      "descripcion_analista_solo": "CONFIDENCIAL — Solo el Analista. Problema de datos y analítica, no de transacciones. Cuatro piezas: (1) Customer Profile para obtener la vista 360° de cada contraparte corporativa con su segmento, scoring y comportamiento. (2) Credit Risk Operations para calcular PD/LGD/EAD por contraparte y detectar la concentración anómala. (3) Customer Event History como fuente del historial de eventos e interacciones que alimenta los modelos de riesgo. (4) Regulatory Compliance para generar el informe COREP de exposición crediticia en el formato exigido por el BCE. Presupuesto $17.000, latencia máxima 800ms.",
+      "sintomas_para_buscador": [
+        "Necesitamos la vista analítica 360 de cada cliente corporativo: segmento, scoring y propensión",
+        "El motor que calcula probabilidad de incumplimiento PD, pérdida LGD y exposición EAD",
+        "La fuente de eventos e historial de interacciones del cliente que alimenta modelos de riesgo",
+        "Un servicio que genere automáticamente el reporte COREP en el formato del banco central"
+      ],
+      "slots_solucion": [
+        {
+          "id": "slot_1",
+          "nombre": "Vista 360° Analítica de Contraparte",
+          "orden": 1
+        },
+        {
+          "id": "slot_2",
+          "nombre": "Motor PD/LGD/EAD Crediticio",
+          "orden": 2
+        },
+        {
+          "id": "slot_3",
+          "nombre": "Historial de Eventos del Cliente",
+          "orden": 3
+        },
+        {
+          "id": "slot_4",
+          "nombre": "Reporte COREP al BCE",
+          "orden": 4
+        }
+      ],
+      "solucion_correcta": {
+        "slot_1": "COMP-005",
+        "slot_2": "COMP-010",
+        "slot_3": "COMP-017",
+        "slot_4": "COMP-015"
+      },
+      "costo_total_solucion": 16100,
+      "latencia_total_solucion_ms": 475,
+      "puntaje_base": 2800,
+      "bonus_tiempo": 900,
+      "explicacion_solucion": "Customer Profile (COMP-005) provee la vista 360° con scoring. Credit Risk Operations (COMP-010) calcula PD/LGD/EAD y detecta concentración. Customer Event History (COMP-017) alimenta los modelos con historial. Regulatory Compliance (COMP-015) genera el COREP para el BCE. Total: $16.100 y 475ms."
+    }
+  ],
+  "eventos_qte": [
+    {
+      "id": "QTE-001",
+      "nombre": "¡Fallo en CICS Gateway!",
+      "descripcion": "El CICS Gateway v14 perdió conexión con el LPAR de producción. El Panic Level sube 1 punto/segundo.",
+      "instruccion_jugador": "Secuencia de reconexión: [RESTART] → [CONFIRM LPAR-PROD] → [FLUSH POOL]",
+      "secuencia_teclas": [
+        "R",
+        "C",
+        "F"
+      ],
+      "tiempo_respuesta_seg": 20,
+      "penalizacion_fallo": 20,
+      "recompensa_exito": 5
+    },
+    {
+      "id": "QTE-002",
+      "nombre": "⚠ Certificado SWIFT Expirado",
+      "descripcion": "El certificado mTLS del canal SWIFT expiró. Todas las transacciones internacionales están en cola.",
+      "instruccion_jugador": "Rotación de certificado: [REVOKE OLD] → [LOAD CERT-2026] → [APPLY CHANNEL]",
+      "secuencia_teclas": [
+        "O",
+        "L",
+        "A"
+      ],
+      "tiempo_respuesta_seg": 25,
+      "penalizacion_fallo": 25,
+      "recompensa_exito": 8
+    },
+    {
+      "id": "QTE-003",
+      "nombre": "🔴 AML Threshold Breach",
+      "descripcion": "El umbral de transacciones sospechosas superó el límite regulatorio. Se requiere acción manual.",
+      "instruccion_jugador": "Escalar caso regulatorio: [FREEZE TX] → [GENERATE SAR] → [NOTIFY REGULATOR]",
+      "secuencia_teclas": [
+        "F",
+        "G",
+        "N"
+      ],
+      "tiempo_respuesta_seg": 20,
+      "penalizacion_fallo": 18,
+      "recompensa_exito": 6
+    }
+  ],
+  "examen_certificacion": [
+    {
+      "id": "EXAM-001",
+      "tipo": "opcion_multiple",
+      "categoria": "Fundamentos",
+      "dificultad": "FÁCIL",
+      "puntaje": 10,
+      "tiempo_limite_seg": 60,
+      "pregunta": "¿Qué tipo de estándar es BIAN? Selecciona la definición más precisa.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "Un estándar tecnológico que prescribe lenguajes de programación y bases de datos para bancos.",
+          "es_correcta": false,
+          "explicacion": "BIAN no prescribe tecnología específica. Es agnóstico a la implementación."
+        },
+        {
+          "id": "B",
+          "texto": "Un estándar semántico que define el lenguaje común para describir las funciones, servicios y objetos de negocio bancario.",
+          "es_correcta": true,
+          "explicacion": "Correcto. BIAN es un estándar semántico, no tecnológico. Define el vocabulario y la estructura conceptual del banco, no cómo implementarlo."
+        },
+        {
+          "id": "C",
+          "texto": "Una metodología de gestión de proyectos específica para transformación bancaria.",
+          "es_correcta": false,
+          "explicacion": "BIAN no es una metodología de gestión de proyectos. Para eso se complementa con TOGAF o SAFe."
+        },
+        {
+          "id": "D",
+          "texto": "Un framework de seguridad para cumplimiento regulatorio bancario.",
+          "es_correcta": false,
+          "explicacion": "BIAN no es un framework de seguridad. Su propósito es la interoperabilidad y arquitectura de servicios bancarios."
+        }
+      ]
+    },
+    {
+      "id": "EXAM-002",
+      "tipo": "opcion_multiple",
+      "categoria": "Fundamentos",
+      "dificultad": "FÁCIL",
+      "puntaje": 10,
+      "tiempo_limite_seg": 60,
+      "pregunta": "¿En qué año fue fundada la Banking Industry Architecture Network (BIAN)?",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "2001",
+          "es_correcta": false,
+          "explicacion": "2001 es incorrecto. BIAN fue fundada varios años después."
+        },
+        {
+          "id": "B",
+          "texto": "2005",
+          "es_correcta": false,
+          "explicacion": "2005 es incorrecto."
+        },
+        {
+          "id": "C",
+          "texto": "2008",
+          "es_correcta": true,
+          "explicacion": "Correcto. BIAN fue fundada en 2008 por organizaciones como SAP, Microsoft, ING, IBM y Credit Suisse."
+        },
+        {
+          "id": "D",
+          "texto": "2012",
+          "es_correcta": false,
+          "explicacion": "2012 es incorrecto. Para ese año BIAN ya llevaba 4 años de operación."
+        }
+      ]
+    },
+    {
+      "id": "EXAM-003",
+      "tipo": "opcion_multiple",
+      "categoria": "Fundamentos",
+      "dificultad": "FÁCIL",
+      "puntaje": 10,
+      "tiempo_limite_seg": 60,
+      "pregunta": "¿Cuál es el principal beneficio que BIAN ofrece en el contexto del Open Banking?",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "Proporciona el código fuente de las APIs para que los bancos lo reutilicen directamente.",
+          "es_correcta": false,
+          "explicacion": "BIAN no provee código fuente. Provee definiciones semánticas y especificaciones de API."
+        },
+        {
+          "id": "B",
+          "texto": "Obliga a los bancos a usar una única plataforma tecnológica común.",
+          "es_correcta": false,
+          "explicacion": "BIAN es agnóstico a la tecnología. No obliga a usar ninguna plataforma específica."
+        },
+        {
+          "id": "C",
+          "texto": "Facilita la interoperabilidad nativa entre bancos, FinTechs, reguladores y terceros mediante un lenguaje semántico común.",
+          "es_correcta": true,
+          "explicacion": "Correcto. Al definir un vocabulario y estructura común, BIAN permite que distintas organizaciones se integren sin transformaciones costosas."
+        },
+        {
+          "id": "D",
+          "texto": "Reemplaza la necesidad de acuerdos bilaterales entre bancos para intercambio de datos.",
+          "es_correcta": false,
+          "explicacion": "BIAN facilita los acuerdos pero no los reemplaza. Los acuerdos legales y regulatorios siguen siendo necesarios."
+        }
+      ]
+    },
+    {
+      "id": "EXAM-004",
+      "tipo": "opcion_multiple",
+      "categoria": "Paradigma",
+      "dificultad": "FÁCIL",
+      "puntaje": 10,
+      "tiempo_limite_seg": 60,
+      "pregunta": "BIAN introduce una analogía urbanística para explicar el cambio de paradigma. ¿Qué representan los 'edificios y calles' en esa analogía?",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "Los procesos de negocio del banco.",
+          "es_correcta": false,
+          "explicacion": "Los procesos son los recorridos dinámicos (las rutas), no la infraestructura estable."
+        },
+        {
+          "id": "B",
+          "texto": "Las capacidades bancarias estables sobre las que se construyen todos los flujos.",
+          "es_correcta": true,
+          "explicacion": "Correcto. BIAN distingue capacidades (infraestructura estable = edificios y calles) de procesos (recorridos dinámicos). Los Service Domains modelan las capacidades."
+        },
+        {
+          "id": "C",
+          "texto": "Los sistemas legacy del banco.",
+          "es_correcta": false,
+          "explicacion": "Los sistemas legacy son parte de la realidad actual, pero la analogía describe la arquitectura objetivo basada en capacidades."
+        },
+        {
+          "id": "D",
+          "texto": "Los reguladores y auditores externos.",
+          "es_correcta": false,
+          "explicacion": "Los reguladores no son parte de la analogía urbanística de BIAN."
+        }
+      ]
+    },
+    {
+      "id": "EXAM-005",
+      "tipo": "opcion_multiple",
+      "categoria": "Paradigma",
+      "dificultad": "MEDIA",
+      "puntaje": 15,
+      "tiempo_limite_seg": 75,
+      "pregunta": "¿Cuál de los siguientes NO es uno de los 6 principios ágiles del marco BIAN?",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "Separación de Preocupaciones",
+          "es_correcta": false,
+          "explicacion": "Separación de Preocupaciones SÍ es uno de los 6 principios ágiles de BIAN."
+        },
+        {
+          "id": "B",
+          "texto": "Desacoplamiento",
+          "es_correcta": false,
+          "explicacion": "Desacoplamiento SÍ es uno de los 6 principios ágiles de BIAN."
+        },
+        {
+          "id": "C",
+          "texto": "Centralización de Datos",
+          "es_correcta": true,
+          "explicacion": "Correcto. Centralización de Datos NO es un principio BIAN. Los 6 principios son: Separación de Preocupaciones, Desacoplamiento, Reusabilidad, Encapsulación, Interoperabilidad y Orientación a Servicios."
+        },
+        {
+          "id": "D",
+          "texto": "Encapsulación",
+          "es_correcta": false,
+          "explicacion": "Encapsulación SÍ es uno de los 6 principios ágiles de BIAN."
+        }
+      ]
+    },
+    {
+      "id": "EXAM-006",
+      "tipo": "opcion_multiple",
+      "categoria": "Service Landscape",
+      "dificultad": "FÁCIL",
+      "puntaje": 10,
+      "tiempo_limite_seg": 60,
+      "pregunta": "¿Cuál es el principio de organización del Service Landscape de BIAN que garantiza que cada Service Domain sea único e independiente?",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "DRY — Don't Repeat Yourself",
+          "es_correcta": false,
+          "explicacion": "DRY es un principio de programación, no el marco organizativo de BIAN."
+        },
+        {
+          "id": "B",
+          "texto": "MECE — Mutuamente Excluyentes y Colectivamente Exhaustivos",
+          "es_correcta": true,
+          "explicacion": "Correcto. MECE garantiza que cada Service Domain cubre una capacidad única sin solaparse (Mutuamente Excluyente) y que en conjunto cubren toda la función bancaria (Colectivamente Exhaustivo)."
+        },
+        {
+          "id": "C",
+          "texto": "SOLID — Single Responsibility, Open/Closed, etc.",
+          "es_correcta": false,
+          "explicacion": "SOLID es un conjunto de principios de diseño orientado a objetos, no el organizador del Service Landscape."
+        },
+        {
+          "id": "D",
+          "texto": "ACID — Atomicity, Consistency, Isolation, Durability",
+          "es_correcta": false,
+          "explicacion": "ACID describe propiedades de transacciones de base de datos, no la organización del Landscape."
+        }
+      ]
+    },
+    {
+      "id": "EXAM-007",
+      "tipo": "opcion_multiple",
+      "categoria": "Service Landscape",
+      "dificultad": "MEDIA",
+      "puntaje": 15,
+      "tiempo_limite_seg": 75,
+      "pregunta": "En la jerarquía del Service Landscape de BIAN, ¿cuál es el orden correcto de mayor a menor granularidad?",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "Business Domain → Business Area → Service Domain",
+          "es_correcta": false,
+          "explicacion": "Business Area es el nivel más alto, no Business Domain."
+        },
+        {
+          "id": "B",
+          "texto": "Service Domain → Business Domain → Business Area",
+          "es_correcta": false,
+          "explicacion": "Orden invertido. Service Domain es el más granular, no el más alto."
+        },
+        {
+          "id": "C",
+          "texto": "Business Area → Business Domain → Service Domain",
+          "es_correcta": true,
+          "explicacion": "Correcto. Business Area (ej. Operations) → Business Domain (ej. Payments) → Service Domain (ej. Payment Execution). La granularidad aumenta de izquierda a derecha."
+        },
+        {
+          "id": "D",
+          "texto": "Business Area → Service Domain → Business Domain",
+          "es_correcta": false,
+          "explicacion": "Business Domain siempre va entre Business Area y Service Domain."
+        }
+      ]
+    },
+    {
+      "id": "EXAM-008",
+      "tipo": "opcion_multiple",
+      "categoria": "Service Landscape",
+      "dificultad": "MEDIA",
+      "puntaje": 15,
+      "tiempo_limite_seg": 75,
+      "pregunta": "¿A qué Business Area de BIAN pertenecen los Service Domains 'Fraud Detection' y 'AML Transaction Monitoring'?",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "Operations",
+          "es_correcta": false,
+          "explicacion": "Operations agrupa dominios de ejecución transaccional como Current Account, Payment Order y Card Transaction."
+        },
+        {
+          "id": "B",
+          "texto": "Sales & Service",
+          "es_correcta": false,
+          "explicacion": "Sales & Service agrupa dominios comerciales como Customer Offer, Product Directory y Customer Case."
+        },
+        {
+          "id": "C",
+          "texto": "Risk & Compliance",
+          "es_correcta": true,
+          "explicacion": "Correcto. Fraud Detection y AML Transaction Monitoring pertenecen al Business Area 'Risk & Compliance', junto con Credit Risk Operations, Regulatory Compliance y Market Risk Management."
+        },
+        {
+          "id": "D",
+          "texto": "Customer Management",
+          "es_correcta": false,
+          "explicacion": "Customer Management agrupa Party Data Management, Customer Profile, Customer Agreement y Customer Event History."
+        }
+      ]
+    },
+    {
+      "id": "EXAM-009",
+      "tipo": "opcion_multiple",
+      "categoria": "Service Landscape",
+      "dificultad": "ALTA",
+      "puntaje": 20,
+      "tiempo_limite_seg": 90,
+      "pregunta": "Un banco quiere procesar pagos internacionales SWIFT con mensajería ISO 20022 y trazabilidad UETR end-to-end. ¿Qué Service Domain de BIAN es el responsable de ejecutar esta operación?",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "Payment Order",
+          "es_correcta": false,
+          "explicacion": "Payment Order captura y valida la instrucción de pago, pero no ejecuta la liquidación interbancaria. Es el paso previo."
+        },
+        {
+          "id": "B",
+          "texto": "Correspondent Bank",
+          "es_correcta": false,
+          "explicacion": "Correspondent Bank gestiona las relaciones Nostro/Vostro con bancos corresponsales, pero no ejecuta el pago en sí."
+        },
+        {
+          "id": "C",
+          "texto": "Payment Execution",
+          "es_correcta": true,
+          "explicacion": "Correcto. Payment Execution es el Service Domain responsable de ejecutar pagos interbancarios con mensajería MX (ISO 20022), tracking SWIFT gpi y trazabilidad UETR end-to-end."
+        },
+        {
+          "id": "D",
+          "texto": "Card Transaction Processing",
+          "es_correcta": false,
+          "explicacion": "Card Transaction Processing maneja pagos con tarjeta (EMV, NFC, 3DS), no transferencias interbancarias SWIFT."
+        }
+      ]
+    },
+    {
+      "id": "EXAM-010",
+      "tipo": "opcion_multiple",
+      "categoria": "Metamodelo",
+      "dificultad": "MEDIA",
+      "puntaje": 15,
+      "tiempo_limite_seg": 75,
+      "pregunta": "En el metamodelo BIAN, ¿qué constructo representa el conjunto de información necesario para que un Service Domain cumpla su función durante toda la vida del activo?",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "Behavior Qualifier",
+          "es_correcta": false,
+          "explicacion": "El Behavior Qualifier descompone el Control Record en aspectos funcionales. No es el contenedor de información en sí."
+        },
+        {
+          "id": "B",
+          "texto": "Generic Artifact",
+          "es_correcta": false,
+          "explicacion": "El Generic Artifact es el resultado de aplicar un Functional Pattern a un Asset Type. No gestiona el estado a lo largo del tiempo."
+        },
+        {
+          "id": "C",
+          "texto": "Control Record",
+          "es_correcta": true,
+          "explicacion": "Correcto. El Control Record es el conjunto de información de negocio que el Service Domain gestiona durante toda la vida útil del activo. Es refinado por los Behavior Qualifiers."
+        },
+        {
+          "id": "D",
+          "texto": "Service Operation",
+          "es_correcta": false,
+          "explicacion": "Service Operation es la API semántica que expone el dominio para interactuar con otros. No es el repositorio de información del dominio."
+        }
+      ]
+    },
+    {
+      "id": "EXAM-011",
+      "tipo": "opcion_multiple",
+      "categoria": "Metamodelo",
+      "dificultad": "MEDIA",
+      "puntaje": 15,
+      "tiempo_limite_seg": 75,
+      "pregunta": "Según el metamodelo BIAN, ¿qué constructo descompone el Control Record en aspectos funcionales específicos como 'Repayment Schedule' o 'Account Balance'?",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "Business Scenario",
+          "es_correcta": false,
+          "explicacion": "El Business Scenario describe la secuencia de colaboración entre dominios ante un evento de negocio, no descompone el Control Record."
+        },
+        {
+          "id": "B",
+          "texto": "Functional Pattern",
+          "es_correcta": false,
+          "explicacion": "El Functional Pattern describe el comportamiento conceptual del dominio (administrar, procesar, analizar)."
+        },
+        {
+          "id": "C",
+          "texto": "Behavior Qualifier",
+          "es_correcta": true,
+          "explicacion": "Correcto. El Behavior Qualifier refina el Control Record en componentes funcionales específicos. Ejemplo: Loan Agreement → Repayment Schedule, Collateral, Interest Calculation, Payment Processing."
+        },
+        {
+          "id": "D",
+          "texto": "Asset Type",
+          "es_correcta": false,
+          "explicacion": "El Asset Type es el objeto sobre el que actúa el dominio (Account, Loan), no descompone el Control Record."
+        }
+      ]
+    },
+    {
+      "id": "EXAM-012",
+      "tipo": "opcion_multiple",
+      "categoria": "Metamodelo",
+      "dificultad": "ALTA",
+      "puntaje": 20,
+      "tiempo_limite_seg": 90,
+      "pregunta": "¿Cuál es la diferencia fundamental entre el Functional Pattern 'Fulfill' y el Functional Pattern 'Process' en el metamodelo BIAN?",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "Fulfill es para pagos y Process es para cuentas.",
+          "es_correcta": false,
+          "explicacion": "Los Functional Patterns no están atados a tipos de producto. Su diferencia es conceptual, no de dominio."
+        },
+        {
+          "id": "B",
+          "texto": "Fulfill gestiona el ciclo de vida completo de un acuerdo o arreglo de larga duración, mientras que Process ejecuta instancias de una actividad transaccional con inicio y fin definidos.",
+          "es_correcta": true,
+          "explicacion": "Correcto. Fulfill aplica a activos de larga duración (Current Account Fulfillment, Savings Account Fulfillment). Process aplica a actividades transaccionales (Payment Execution, Card Transaction Processing)."
+        },
+        {
+          "id": "C",
+          "texto": "Fulfill usa APIs REST y Process usa APIs SOAP.",
+          "es_correcta": false,
+          "explicacion": "El Functional Pattern no determina el estilo de API. Ambos pueden usar REST, SOAP o cualquier protocolo."
+        },
+        {
+          "id": "D",
+          "texto": "No hay diferencia real, son sinónimos en BIAN v14.",
+          "es_correcta": false,
+          "explicacion": "Incorrecto. Son Functional Patterns completamente distintos con semánticas y Generic Artifacts diferentes."
+        }
+      ]
+    },
+    {
+      "id": "EXAM-013",
+      "tipo": "opcion_multiple",
+      "categoria": "Metamodelo",
+      "dificultad": "ALTA",
+      "puntaje": 20,
+      "tiempo_limite_seg": 90,
+      "pregunta": "En el metamodelo BIAN, ¿cuál es la cadena de derivación correcta desde Business Area hasta Behavior Qualifier?",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "Business Area → Service Domain → Business Domain → Functional Pattern → Control Record → Behavior Qualifier",
+          "es_correcta": false,
+          "explicacion": "Business Domain y Service Domain están en orden incorrecto, y falta Asset Type y Generic Artifact."
+        },
+        {
+          "id": "B",
+          "texto": "Business Area → Business Domain → Service Domain → Functional Pattern + Asset Type → Generic Artifact → Control Record → Behavior Qualifier",
+          "es_correcta": true,
+          "explicacion": "Correcto. Esta es la cadena exacta del metamodelo BIAN: Functional Pattern + Asset Type producen el Generic Artifact, que instanciado produce el Control Record, refinado por los Behavior Qualifiers."
+        },
+        {
+          "id": "C",
+          "texto": "Business Area → Business Domain → Functional Pattern → Service Domain → Control Record → Behavior Qualifier",
+          "es_correcta": false,
+          "explicacion": "El Functional Pattern no deriva del Business Domain directamente. Es una propiedad del Service Domain."
+        },
+        {
+          "id": "D",
+          "texto": "Business Area → Business Domain → Service Domain → Control Record → Behavior Qualifier → Functional Pattern",
+          "es_correcta": false,
+          "explicacion": "Functional Pattern no es el último elemento. Los Behavior Qualifiers son el refinamiento final del Control Record."
+        }
+      ]
+    },
+    {
+      "id": "EXAM-014",
+      "tipo": "opcion_multiple",
+      "categoria": "Capas de Arquitectura",
+      "dificultad": "MEDIA",
+      "puntaje": 15,
+      "tiempo_limite_seg": 75,
+      "pregunta": "Un banco necesita exponer su servicio COBOL en mainframe z/OS como API REST sin modificar el código legacy. ¿Cuál es el patrón correcto según la capa de Arquitectura de Aplicaciones de BIAN?",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "Reescribir el sistema COBOL completo en Java Spring Boot.",
+          "es_correcta": false,
+          "explicacion": "Reescritura completa: costosa, riesgosa y contraria a la modernización incremental que promueve BIAN."
+        },
+        {
+          "id": "B",
+          "texto": "CICS Gateway Adapter que envuelva las transacciones CICS y las exponga como REST sin alterar el COBOL.",
+          "es_correcta": true,
+          "explicacion": "Correcto. Patrón Strangler Fig con CICS Adapter: moderniza la interfaz preservando el sistema legacy estable, alineado con la Arquitectura de Aplicaciones de BIAN."
+        },
+        {
+          "id": "C",
+          "texto": "Base de datos intermedia donde el mainframe deposita datos y una API REST los consume.",
+          "es_correcta": false,
+          "explicacion": "Patrón de base de datos compartida: acoplamiento fuerte y sin integración en tiempo real."
+        },
+        {
+          "id": "D",
+          "texto": "FTP directo al mainframe para descargar archivos de transacciones.",
+          "es_correcta": false,
+          "explicacion": "FTP no es tiempo real y no cumple PCI-DSS, ISO 27001 ni SWIFT CSP."
+        }
+      ]
+    },
+    {
+      "id": "EXAM-015",
+      "tipo": "opcion_multiple",
+      "categoria": "Capas de Arquitectura",
+      "dificultad": "MEDIA",
+      "puntaje": 15,
+      "tiempo_limite_seg": 75,
+      "pregunta": "¿Cuál de las tres capas de arquitectura de BIAN se ocupa del Business Object Model (BOM) para estandarizar el significado de los datos entre sistemas?",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "Arquitectura de Negocio",
+          "es_correcta": false,
+          "explicacion": "La Arquitectura de Negocio mapea funciones bancarias sobre el Landscape e identifica redundancias y Business Scenarios."
+        },
+        {
+          "id": "B",
+          "texto": "Arquitectura de Aplicaciones",
+          "es_correcta": false,
+          "explicacion": "La Arquitectura de Aplicaciones define límites entre sistemas, racionalización del portafolio y wrapping de sistemas legacy."
+        },
+        {
+          "id": "C",
+          "texto": "Arquitectura de Información",
+          "es_correcta": true,
+          "explicacion": "Correcto. La Arquitectura de Información utiliza el Business Object Model (BOM) para estandarizar la semántica de los datos y construir modelos canónicos que integren sistemas heterogéneos."
+        },
+        {
+          "id": "D",
+          "texto": "Arquitectura de Seguridad",
+          "es_correcta": false,
+          "explicacion": "BIAN no define una capa de Arquitectura de Seguridad. Sus tres capas son: Negocio, Aplicaciones e Información."
+        }
+      ]
+    },
+    {
+      "id": "EXAM-016",
+      "tipo": "opcion_multiple",
+      "categoria": "Capas de Arquitectura",
+      "dificultad": "ALTA",
+      "puntaje": 20,
+      "tiempo_limite_seg": 90,
+      "pregunta": "Un arquitecto diseña el flujo de apertura de cuenta corriente digital. Según el Business Scenario de BIAN, ¿cuál es el orden correcto de los Service Domains?",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "Current Account Fulfillment → Customer Offer → Party Data Management → Product Directory",
+          "es_correcta": false,
+          "explicacion": "Orden invertido. No se puede abrir la cuenta antes de tener los datos del cliente y la oferta acordada."
+        },
+        {
+          "id": "B",
+          "texto": "Product Directory → Customer Offer → Party Data Management → Current Account Fulfillment",
+          "es_correcta": false,
+          "explicacion": "Party Data Management debe establecerse antes de Customer Offer, no después."
+        },
+        {
+          "id": "C",
+          "texto": "Party Data Management → Product Directory → Customer Offer → Current Account Fulfillment",
+          "es_correcta": true,
+          "explicacion": "Correcto. Primero el golden record del cliente (Party Data Management), luego el catálogo de productos (Product Directory), la oferta comercial (Customer Offer) y finalmente el aprovisionamiento de la cuenta (Current Account Fulfillment)."
+        },
+        {
+          "id": "D",
+          "texto": "Customer Offer → Party Data Management → Product Directory → Current Account Fulfillment",
+          "es_correcta": false,
+          "explicacion": "No se puede hacer una oferta comercial antes de tener los datos del cliente (Party Data Management)."
+        }
+      ]
+    },
+    {
+      "id": "EXAM-017",
+      "tipo": "opcion_multiple",
+      "categoria": "Herramientas",
+      "dificultad": "MEDIA",
+      "puntaje": 15,
+      "tiempo_limite_seg": 75,
+      "pregunta": "¿Cómo se complementan TOGAF y BIAN en una transformación bancaria?",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "TOGAF reemplaza a BIAN cuando el banco ya tiene un framework de arquitectura empresarial establecido.",
+          "es_correcta": false,
+          "explicacion": "TOGAF y BIAN no se reemplazan. Son complementarios y están diseñados para usarse juntos."
+        },
+        {
+          "id": "B",
+          "texto": "TOGAF provee la metodología (proceso ADM) y BIAN provee el contenido bancario específico (dominios, objetos, semántica) que alimenta esa metodología.",
+          "es_correcta": true,
+          "explicacion": "Correcto. TOGAF es la metodología de proceso (el cómo). BIAN es el contenido de industria (el qué). BIAN se posiciona en el Enterprise Continuum de TOGAF como Industry Architecture."
+        },
+        {
+          "id": "C",
+          "texto": "BIAN es un subconjunto de TOGAF específicamente diseñado para el sector financiero.",
+          "es_correcta": false,
+          "explicacion": "BIAN no es un subconjunto de TOGAF. Son estándares independientes de diferentes organizaciones que se complementan."
+        },
+        {
+          "id": "D",
+          "texto": "TOGAF gestiona el Service Landscape y BIAN gestiona el proceso ADM de desarrollo de arquitectura.",
+          "es_correcta": false,
+          "explicacion": "Es al revés. BIAN gestiona el Service Landscape (contenido) y TOGAF gestiona el proceso ADM (metodología)."
+        }
+      ]
+    },
+    {
+      "id": "EXAM-018",
+      "tipo": "opcion_multiple",
+      "categoria": "Herramientas",
+      "dificultad": "ALTA",
+      "puntaje": 20,
+      "tiempo_limite_seg": 90,
+      "pregunta": "Un banco detecta transacciones sospechosas que podrían ser lavado de dinero. ¿Qué combinación de Service Domains de BIAN debe activarse en secuencia?",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "Card Transaction Processing → Fraud Detection → Customer Case",
+          "es_correcta": false,
+          "explicacion": "Esta secuencia aplica para fraude en tarjetas. El lavado de dinero requiere AML Transaction Monitoring, un dominio especializado y regulatorio distinto."
+        },
+        {
+          "id": "B",
+          "texto": "AML Transaction Monitoring → Regulatory Compliance → Customer Case",
+          "es_correcta": true,
+          "explicacion": "Correcto. AML Transaction Monitoring detecta el patrón y genera el SAR. Regulatory Compliance gestiona el reporte al regulador. Customer Case administra el caso de investigación."
+        },
+        {
+          "id": "C",
+          "texto": "Credit Risk Operations → AML Transaction Monitoring → Payment Execution",
+          "es_correcta": false,
+          "explicacion": "Credit Risk Operations evalúa riesgo crediticio, no lavado de dinero. Payment Execution no debe activarse como respuesta a una alerta AML."
+        },
+        {
+          "id": "D",
+          "texto": "Fraud Detection → Payment Order → Regulatory Compliance",
+          "es_correcta": false,
+          "explicacion": "AML Transaction Monitoring es el dominio específico para lavado de dinero. Payment Order no es parte de la respuesta a una alerta AML."
+        }
+      ]
+    },
+    {
+      "id": "EXAM-019",
+      "tipo": "opcion_multiple",
+      "categoria": "Herramientas",
+      "dificultad": "ALTA",
+      "puntaje": 20,
+      "tiempo_limite_seg": 90,
+      "pregunta": "¿Qué es un Business Scenario en BIAN y en qué se diferencia de un proceso BPM tradicional?",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "Es idéntico a un proceso BPM: secuencia de tareas con responsables, tiempos y condiciones de entrada/salida.",
+          "es_correcta": false,
+          "explicacion": "Un Business Scenario BIAN no es un proceso BPM. No prescribe responsables ni tiempos de ejecución."
+        },
+        {
+          "id": "B",
+          "texto": "Es un diagrama de flujo de datos entre bases de datos bancarias.",
+          "es_correcta": false,
+          "explicacion": "Un Business Scenario no modela flujo de datos entre bases de datos. Modela colaboración entre Service Domains."
+        },
+        {
+          "id": "C",
+          "texto": "Es una secuencia vinculada de interacciones entre Service Domains en respuesta a un evento de negocio, que describe el patrón de colaboración sin prescribir implementación.",
+          "es_correcta": true,
+          "explicacion": "Correcto. A diferencia del BPM, el Business Scenario BIAN es un patrón de referencia: describe qué dominios colaboran y en qué orden ante un evento (ej. apertura de cuenta), pero no dicta cómo implementarlo tecnológicamente."
+        },
+        {
+          "id": "D",
+          "texto": "Es el conjunto de APIs REST que un banco debe exponer para cumplir con Open Banking PSD2.",
+          "es_correcta": false,
+          "explicacion": "El Business Scenario es un constructo conceptual del metamodelo, no una especificación de APIs regulatorias."
+        }
+      ]
+    },
+    {
+      "id": "EXAM-020",
+      "tipo": "opcion_multiple",
+      "categoria": "Herramientas",
+      "dificultad": "EXPERTO",
+      "puntaje": 25,
+      "tiempo_limite_seg": 120,
+      "pregunta": "Un banco latinoamericano quiere adoptar BIAN para modernizar su arquitectura. Según el enfoque de adopción incremental de BIAN, ¿cuál es la secuencia correcta de pasos?",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "1. Reemplazar todos los sistemas legacy simultáneamente. 2. Mapear los nuevos sistemas al Service Landscape. 3. Certificar.",
+          "es_correcta": false,
+          "explicacion": "BIAN promueve la evolución gradual, no reemplazos simultáneos. Un 'big bang' es contrario al enfoque BIAN."
+        },
+        {
+          "id": "B",
+          "texto": "1. Mapear las capacidades actuales del banco sobre el Service Landscape. 2. Identificar brechas y redundancias. 3. Modernizar dominio por dominio de forma incremental.",
+          "es_correcta": true,
+          "explicacion": "Correcto. El enfoque BIAN es incremental: primero entender el estado actual (AS-IS) mapeando sobre el Landscape, identificar brechas funcionales y redundancias, y evolucionar dominio por dominio sin disrupciones. Este es el principio de Evolución Gradual de BIAN."
+        },
+        {
+          "id": "C",
+          "texto": "1. Contratar a todos los proveedores miembros de BIAN. 2. Implementar los 320+ Service Domains en 18 meses. 3. Certificar.",
+          "es_correcta": false,
+          "explicacion": "BIAN no requiere implementar todos los dominios ni usar proveedores específicos. El enfoque es incremental y agnóstico a la tecnología."
+        },
+        {
+          "id": "D",
+          "texto": "1. Certificar todo el equipo en BIAN Foundation. 2. Reescribir el core banking. 3. Publicar las APIs.",
+          "es_correcta": false,
+          "explicacion": "Aunque la formación es valiosa, BIAN no prescribe reescribir el core banking como primer paso. La modernización es gradual dominio por dominio."
+        }
+      ]
+    }
+  ],
+  "textos_ui": {
+    "titulo_juego": "Architecture Chaos",
+    "subtitulo_juego": "Capacitación Corporativa en Modernización Bancaria",
+    "etiqueta_tema": "BIAN Open API & Legacy Modernization",
+    "boton_iniciar": "Iniciar Misión",
+    "boton_auditoria": "Modo Auditoría",
+    "texto_panico": "Pánico del Sistema",
+    "texto_presupuesto": "Presupuesto Disponible",
+    "texto_latencia": "Latencia Total",
+    "alerta_qte": "¡ALERTA SISTEMA LEGACY!",
+    "mensaje_victoria": "¡Arquitectura Estabilizada! El sistema bancario ha sido modernizado exitosamente.",
+    "mensaje_derrota": "El Pánico del Sistema alcanzó el nivel crítico. Los sistemas legacy han colapsado.",
+    "certificado_titulo": "Certificado de Competencia",
+    "certificado_subtitulo": "Modernización de Sistemas Bancarios — Estándares BIAN v12"
+  }
+}
