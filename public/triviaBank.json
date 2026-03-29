@@ -1,0 +1,790 @@
+{
+  "categories": {
+    "bian": {
+      "label": "BIAN v14",
+      "icon": "🏦",
+      "questions": [
+        {
+          "id": "bian-01",
+          "question": "¿Qué es un Service Domain en BIAN?",
+          "options": [
+            "Una unidad funcional que encapsula una capacidad de negocio específica",
+            "Un servidor físico del banco",
+            "Un departamento organizacional",
+            "Un tipo de base de datos"
+          ],
+          "correct": 0
+        },
+        {
+          "id": "bian-02",
+          "question": "¿Qué Functional Pattern describe la gestión continua de un recurso?",
+          "options": ["Fulfill", "Manage", "Operate", "Transact"],
+          "correct": 1
+        },
+        {
+          "id": "bian-03",
+          "question": "¿Qué es un Control Record en BIAN?",
+          "options": [
+            "Un log de auditoría",
+            "La instancia principal de datos que un Service Domain gestiona",
+            "Un registro de control de acceso",
+            "Una tabla de configuración"
+          ],
+          "correct": 1
+        },
+        {
+          "id": "bian-04",
+          "question": "¿Qué Service Domain maneja la apertura de cuentas corrientes?",
+          "options": [
+            "Party Routing Profile",
+            "Current Account",
+            "Customer Offer",
+            "Account Recovery"
+          ],
+          "correct": 1
+        },
+        {
+          "id": "bian-05",
+          "question": "¿Qué es un Behavior Qualifier en BIAN?",
+          "options": [
+            "Un indicador de rendimiento del sistema",
+            "Una sub-capacidad dentro de un Service Domain",
+            "Un tipo de test automatizado",
+            "Un rol de usuario"
+          ],
+          "correct": 1
+        },
+        {
+          "id": "bian-06",
+          "question": "¿Cuántos Service Domains tiene aproximadamente BIAN v14?",
+          "options": ["50", "120", "Over 300", "500"],
+          "correct": 2
+        },
+        {
+          "id": "bian-07",
+          "question": "¿Qué Functional Pattern representa una transacción discreta?",
+          "options": ["Process", "Transact", "Fulfill", "Allocate"],
+          "correct": 1
+        },
+        {
+          "id": "bian-08",
+          "question": "¿Qué Service Domain gestiona la evaluación de riesgo crediticio?",
+          "options": [
+            "Credit Administration",
+            "Party Risk Assessment",
+            "Credit Risk Models",
+            "Underwriting"
+          ],
+          "correct": 2
+        },
+        {
+          "id": "bian-09",
+          "question": "¿Qué tipo de Business Scenario describe la migración de un sistema legacy?",
+          "options": [
+            "Business Event",
+            "Business Scenario de Transformación",
+            "Operational Scenario",
+            "Integration Pattern"
+          ],
+          "correct": 1
+        },
+        {
+          "id": "bian-10",
+          "question": "¿Qué capa del BIAN landscape contiene 'Customer Offer'?",
+          "options": [
+            "Business Support",
+            "Sales & Service",
+            "Operations & Execution",
+            "Risk & Compliance"
+          ],
+          "correct": 1
+        },
+        {
+          "id": "bian-11",
+          "question": "¿Qué Service Domain maneja la detección de fraude?",
+          "options": [
+            "Fraud Detection",
+            "Fraud Evaluation",
+            "Transaction Authorization",
+            "Fraud Resolution"
+          ],
+          "correct": 1
+        },
+        {
+          "id": "bian-12",
+          "question": "¿Qué significa el patrón funcional 'Fulfill'?",
+          "options": [
+            "Aprobar una solicitud",
+            "Completar un proceso complejo con múltiples pasos",
+            "Ejecutar una transacción inmediata",
+            "Monitorear un sistema en producción"
+          ],
+          "correct": 1
+        }
+      ]
+    },
+    "bancaria": {
+      "label": "Banca y Finanzas",
+      "icon": "💰",
+      "questions": [
+        {
+          "id": "bank-01",
+          "question": "¿Qué es el ratio de Basilea III?",
+          "options": [
+            "La tasa de interés interbancaria",
+            "El requerimiento mínimo de capital que un banco debe mantener",
+            "El porcentaje de reservas en divisas",
+            "La comisión por transferencias internacionales"
+          ],
+          "correct": 1
+        },
+        {
+          "id": "bank-02",
+          "question": "¿Qué significa KYC en banca?",
+          "options": [
+            "Key Yield Calculation",
+            "Know Your Customer",
+            "Keep Your Capital",
+            "Knowledge Year Compliance"
+          ],
+          "correct": 1
+        },
+        {
+          "id": "bank-03",
+          "question": "¿Qué es una cámara de compensación?",
+          "options": [
+            "Un sistema de videovigilancia bancaria",
+            "Una entidad que facilita el intercambio de pagos entre bancos",
+            "Un departamento de auditoría",
+            "Una sala de servidores"
+          ],
+          "correct": 1
+        },
+        {
+          "id": "bank-04",
+          "question": "¿Qué es el spread bancario?",
+          "options": [
+            "La diferencia entre la tasa de interés activa y pasiva",
+            "El horario extendido de atención",
+            "El margen de error en transacciones",
+            "La cobertura geográfica de sucursales"
+          ],
+          "correct": 0
+        },
+        {
+          "id": "bank-05",
+          "question": "¿Qué protocolo de mensajería usan los bancos para transferencias internacionales?",
+          "options": ["HTTP", "SWIFT", "SMTP", "FTP"],
+          "correct": 1
+        },
+        {
+          "id": "bank-06",
+          "question": "¿Qué es el encaje bancario?",
+          "options": [
+            "El porcentaje de depósitos que el banco debe mantener como reserva",
+            "El costo de mantenimiento de cuenta",
+            "La tasa de morosidad",
+            "El monto mínimo de apertura"
+          ],
+          "correct": 0
+        },
+        {
+          "id": "bank-07",
+          "question": "¿Qué es PSD2 en el contexto bancario europeo?",
+          "options": [
+            "Un tipo de tarjeta de crédito",
+            "La directiva de servicios de pago que permite Open Banking",
+            "Un protocolo de seguridad biométrica",
+            "Un estándar de encriptación"
+          ],
+          "correct": 1
+        },
+        {
+          "id": "bank-08",
+          "question": "¿Qué es el riesgo operacional en un banco?",
+          "options": [
+            "El riesgo de que un cliente no pague",
+            "El riesgo de pérdida por fallas en procesos, personas o sistemas",
+            "El riesgo de tipo de cambio",
+            "El riesgo de liquidez"
+          ],
+          "correct": 1
+        },
+        {
+          "id": "bank-09",
+          "question": "¿Qué significa AML en compliance bancario?",
+          "options": [
+            "Automated Machine Learning",
+            "Anti-Money Laundering",
+            "Asset Management Liability",
+            "Approved Maximum Leverage"
+          ],
+          "correct": 1
+        },
+        {
+          "id": "bank-10",
+          "question": "¿Qué es un core bancario?",
+          "options": [
+            "La bóveda principal del banco",
+            "El sistema central que procesa las operaciones bancarias diarias",
+            "El comité directivo del banco",
+            "La sucursal principal"
+          ],
+          "correct": 1
+        },
+        {
+          "id": "bank-11",
+          "question": "¿Qué es la banca corresponsal?",
+          "options": [
+            "Banca por correo postal",
+            "Servicio bancario prestado a través de establecimientos no bancarios",
+            "Corresponsalía de prensa financiera",
+            "Intercambio de empleados entre bancos"
+          ],
+          "correct": 1
+        }
+      ]
+    },
+    "cultura_general": {
+      "label": "Cultura General",
+      "icon": "🌍",
+      "questions": [
+        {
+          "id": "cg-01",
+          "question": "¿Cuál es el río más largo del mundo?",
+          "options": ["Amazonas", "Nilo", "Yangtsé", "Misisipi"],
+          "correct": 1
+        },
+        {
+          "id": "cg-02",
+          "question": "¿Quién pintó 'La noche estrellada'?",
+          "options": ["Monet", "Van Gogh", "Dalí", "Picasso"],
+          "correct": 1
+        },
+        {
+          "id": "cg-03",
+          "question": "¿Cuál es el elemento químico más abundante en el universo?",
+          "options": ["Oxígeno", "Carbono", "Hidrógeno", "Helio"],
+          "correct": 2
+        },
+        {
+          "id": "cg-04",
+          "question": "¿En qué año llegó el hombre a la Luna?",
+          "options": ["1967", "1969", "1971", "1965"],
+          "correct": 1
+        },
+        {
+          "id": "cg-05",
+          "question": "¿Cuál es la capital de Australia?",
+          "options": ["Sídney", "Melbourne", "Canberra", "Brisbane"],
+          "correct": 2
+        },
+        {
+          "id": "cg-06",
+          "question": "¿Cuántos huesos tiene el cuerpo humano adulto?",
+          "options": ["186", "206", "226", "256"],
+          "correct": 1
+        },
+        {
+          "id": "cg-07",
+          "question": "¿Qué instrumento tocaba Mozart desde los 3 años?",
+          "options": ["Violín", "Flauta", "Clavicordio", "Guitarra"],
+          "correct": 2
+        },
+        {
+          "id": "cg-08",
+          "question": "¿Qué gas respiramos principalmente?",
+          "options": ["Oxígeno", "Nitrógeno", "CO2", "Argón"],
+          "correct": 1
+        },
+        {
+          "id": "cg-09",
+          "question": "¿Cuál es el océano más grande?",
+          "options": ["Atlántico", "Índico", "Pacífico", "Ártico"],
+          "correct": 2
+        },
+        {
+          "id": "cg-10",
+          "question": "¿Qué país tiene forma de bota?",
+          "options": ["Grecia", "España", "Italia", "Portugal"],
+          "correct": 2
+        }
+      ]
+    },
+    "historia": {
+      "label": "Historia",
+      "icon": "📜",
+      "questions": [
+        {
+          "id": "hist-01",
+          "question": "¿En qué año cayó el Muro de Berlín?",
+          "options": ["1987", "1989", "1991", "1985"],
+          "correct": 1
+        },
+        {
+          "id": "hist-02",
+          "question": "¿Quién fue el primer emperador romano?",
+          "options": ["Julio César", "Augusto", "Nerón", "Calígula"],
+          "correct": 1
+        },
+        {
+          "id": "hist-03",
+          "question": "¿En qué siglo se inventó la imprenta de Gutenberg?",
+          "options": ["Siglo XIII", "Siglo XIV", "Siglo XV", "Siglo XVI"],
+          "correct": 2
+        },
+        {
+          "id": "hist-04",
+          "question": "¿Qué civilización construyó Machu Picchu?",
+          "options": ["Maya", "Azteca", "Inca", "Olmeca"],
+          "correct": 2
+        },
+        {
+          "id": "hist-05",
+          "question": "¿En qué año comenzó la Revolución Francesa?",
+          "options": ["1776", "1789", "1799", "1815"],
+          "correct": 1
+        },
+        {
+          "id": "hist-06",
+          "question": "¿Quién descubrió la penicilina?",
+          "options": ["Pasteur", "Fleming", "Koch", "Jenner"],
+          "correct": 1
+        },
+        {
+          "id": "hist-07",
+          "question": "¿Qué tratado puso fin a la Primera Guerra Mundial?",
+          "options": ["Versalles", "Westfalia", "Tordesillas", "Utrecht"],
+          "correct": 0
+        },
+        {
+          "id": "hist-08",
+          "question": "¿Quién fue el libertador de Argentina, Chile y Perú?",
+          "options": ["Bolívar", "San Martín", "O'Higgins", "Sucre"],
+          "correct": 1
+        },
+        {
+          "id": "hist-09",
+          "question": "¿En qué año se fundó la ONU?",
+          "options": ["1942", "1945", "1948", "1950"],
+          "correct": 1
+        },
+        {
+          "id": "hist-10",
+          "question": "¿Qué imperio construyó el Coliseo romano?",
+          "options": ["Griego", "Romano", "Bizantino", "Otomano"],
+          "correct": 1
+        }
+      ]
+    },
+    "ciencia_tecnologia": {
+      "label": "Ciencia y Tecnología",
+      "icon": "🔬",
+      "questions": [
+        {
+          "id": "tech-01",
+          "question": "¿Qué significa API?",
+          "options": [
+            "Application Programming Interface",
+            "Automated Process Integration",
+            "Advanced Protocol Internet",
+            "Application Process Interchange"
+          ],
+          "correct": 0
+        },
+        {
+          "id": "tech-02",
+          "question": "¿Qué es un microservicio?",
+          "options": [
+            "Un servidor muy pequeño",
+            "Una arquitectura donde cada servicio cumple una función específica e independiente",
+            "Un programa que usa poca memoria",
+            "Un tipo de API gratuita"
+          ],
+          "correct": 1
+        },
+        {
+          "id": "tech-03",
+          "question": "¿Quién es considerado el padre de la computación?",
+          "options": ["Steve Jobs", "Alan Turing", "Bill Gates", "John von Neumann"],
+          "correct": 1
+        },
+        {
+          "id": "tech-04",
+          "question": "¿Qué planeta del sistema solar es el más grande?",
+          "options": ["Saturno", "Neptuno", "Júpiter", "Urano"],
+          "correct": 2
+        },
+        {
+          "id": "tech-05",
+          "question": "¿Qué es Docker en desarrollo de software?",
+          "options": [
+            "Un lenguaje de programación",
+            "Una plataforma de contenedores para empaquetar aplicaciones",
+            "Un sistema operativo",
+            "Un tipo de base de datos"
+          ],
+          "correct": 1
+        },
+        {
+          "id": "tech-06",
+          "question": "¿Qué velocidad tiene la luz aproximadamente?",
+          "options": [
+            "100,000 km/s",
+            "200,000 km/s",
+            "300,000 km/s",
+            "400,000 km/s"
+          ],
+          "correct": 2
+        },
+        {
+          "id": "tech-07",
+          "question": "¿Qué significa REST en arquitectura de APIs?",
+          "options": [
+            "Remote Execution Service Technology",
+            "Representational State Transfer",
+            "Reliable Endpoint Service Tool",
+            "Resource Exchange Standard Type"
+          ],
+          "correct": 1
+        },
+        {
+          "id": "tech-08",
+          "question": "¿Qué es la latencia en redes?",
+          "options": [
+            "La cantidad de datos transmitidos",
+            "El tiempo que tarda un paquete en viajar de origen a destino",
+            "La capacidad máxima del cable",
+            "El número de usuarios conectados"
+          ],
+          "correct": 1
+        },
+        {
+          "id": "tech-09",
+          "question": "¿Cuántos bits tiene un byte?",
+          "options": ["4", "8", "16", "32"],
+          "correct": 1
+        },
+        {
+          "id": "tech-10",
+          "question": "¿Qué es GraphQL?",
+          "options": [
+            "Un lenguaje de consultas para APIs",
+            "Un tipo de base de datos de grafos",
+            "Un framework de visualización",
+            "Un protocolo de red"
+          ],
+          "correct": 0
+        }
+      ]
+    },
+    "geografia": {
+      "label": "Geografía",
+      "icon": "🗺️",
+      "questions": [
+        {
+          "id": "geo-01",
+          "question": "¿Cuál es el país más grande del mundo por superficie?",
+          "options": ["China", "Estados Unidos", "Rusia", "Canadá"],
+          "correct": 2
+        },
+        {
+          "id": "geo-02",
+          "question": "¿En qué continente está el desierto del Sahara?",
+          "options": ["Asia", "África", "América", "Oceanía"],
+          "correct": 1
+        },
+        {
+          "id": "geo-03",
+          "question": "¿Cuál es la montaña más alta del mundo?",
+          "options": ["K2", "Kilimanjaro", "Everest", "Aconcagua"],
+          "correct": 2
+        },
+        {
+          "id": "geo-04",
+          "question": "¿Qué país tiene más habitantes?",
+          "options": ["India", "China", "Estados Unidos", "Indonesia"],
+          "correct": 0
+        },
+        {
+          "id": "geo-05",
+          "question": "¿Cuál es el lago más profundo del mundo?",
+          "options": ["Titicaca", "Superior", "Baikal", "Victoria"],
+          "correct": 2
+        },
+        {
+          "id": "geo-06",
+          "question": "¿En qué país se encuentra la Patagonia?",
+          "options": ["Chile y Argentina", "Brasil y Uruguay", "Perú y Bolivia", "Colombia y Ecuador"],
+          "correct": 0
+        },
+        {
+          "id": "geo-07",
+          "question": "¿Cuál es la isla más grande del mundo?",
+          "options": ["Madagascar", "Borneo", "Groenlandia", "Nueva Guinea"],
+          "correct": 2
+        },
+        {
+          "id": "geo-08",
+          "question": "¿Por cuántos países pasa el río Amazonas?",
+          "options": ["3", "5", "7", "9"],
+          "correct": 2
+        },
+        {
+          "id": "geo-09",
+          "question": "¿Cuál es el volcán activo más alto del mundo?",
+          "options": ["Cotopaxi", "Ojos del Salado", "Etna", "Fuji"],
+          "correct": 1
+        },
+        {
+          "id": "geo-10",
+          "question": "¿Cuál es el estrecho que separa Europa de África?",
+          "options": ["Malaca", "Gibraltar", "Bering", "Ormuz"],
+          "correct": 1
+        }
+      ]
+    },
+    "cine_entretenimiento": {
+      "label": "Cine y Entretenimiento",
+      "icon": "🎬",
+      "questions": [
+        {
+          "id": "cine-01",
+          "question": "¿Quién dirigió 'El Padrino'?",
+          "options": ["Scorsese", "Coppola", "Spielberg", "Kubrick"],
+          "correct": 1
+        },
+        {
+          "id": "cine-02",
+          "question": "¿En qué año se estrenó la primera película de 'Star Wars'?",
+          "options": ["1975", "1977", "1979", "1980"],
+          "correct": 1
+        },
+        {
+          "id": "cine-03",
+          "question": "¿Qué actor interpretó a Jack en 'Titanic'?",
+          "options": ["Brad Pitt", "Leonardo DiCaprio", "Johnny Depp", "Tom Cruise"],
+          "correct": 1
+        },
+        {
+          "id": "cine-04",
+          "question": "¿Cuál fue la primera película animada de Pixar?",
+          "options": ["Buscando a Nemo", "Monsters Inc", "Toy Story", "Bichos"],
+          "correct": 2
+        },
+        {
+          "id": "cine-05",
+          "question": "¿Qué país produce más películas al año?",
+          "options": ["Estados Unidos", "China", "India", "Nigeria"],
+          "correct": 2
+        },
+        {
+          "id": "cine-06",
+          "question": "¿En qué saga de películas aparece el DeLorean como máquina del tiempo?",
+          "options": [
+            "Terminator",
+            "Volver al Futuro",
+            "Matrix",
+            "Blade Runner"
+          ],
+          "correct": 1
+        },
+        {
+          "id": "cine-07",
+          "question": "¿Quién compuso la banda sonora de 'El Señor de los Anillos'?",
+          "options": ["John Williams", "Hans Zimmer", "Howard Shore", "James Horner"],
+          "correct": 2
+        },
+        {
+          "id": "cine-08",
+          "question": "¿Cuántas películas de 'Matrix' se filmaron originalmente?",
+          "options": ["2", "3", "4", "5"],
+          "correct": 1
+        },
+        {
+          "id": "cine-09",
+          "question": "¿Qué videojuego fue el primero en superar los mil millones en ventas en 3 días?",
+          "options": ["Call of Duty", "GTA V", "Minecraft", "Fortnite"],
+          "correct": 1
+        },
+        {
+          "id": "cine-10",
+          "question": "¿En qué ciudad ficticia vive Batman?",
+          "options": ["Metrópolis", "Star City", "Gotham City", "Central City"],
+          "correct": 2
+        }
+      ]
+    },
+    "harry_potter": {
+      "label": "Harry Potter",
+      "icon": "⚡",
+      "questions": [
+        {
+          "id": "hp-01",
+          "question": "¿Cuál es el patronus de Harry Potter?",
+          "options": ["Lobo", "Ciervo", "Fénix", "Nutria"],
+          "correct": 1
+        },
+        {
+          "id": "hp-02",
+          "question": "¿Cuántos Horrocruxes creó Voldemort?",
+          "options": ["5", "6", "7", "8"],
+          "correct": 2
+        },
+        {
+          "id": "hp-03",
+          "question": "¿Qué materia enseña Severus Snape inicialmente?",
+          "options": ["Defensa contra las Artes Oscuras", "Pociones", "Transformaciones", "Herbología"],
+          "correct": 1
+        },
+        {
+          "id": "hp-04",
+          "question": "¿Cuál es el nombre completo de Dumbledore?",
+          "options": [
+            "Albus Severus Dumbledore",
+            "Albus Percival Wulfric Brian Dumbledore",
+            "Albus Brian Dumbledore",
+            "Albus Wulfric Dumbledore"
+          ],
+          "correct": 1
+        },
+        {
+          "id": "hp-05",
+          "question": "¿Qué criatura custodia la Cámara de los Secretos?",
+          "options": ["Dragón", "Basilisco", "Acromántula", "Hipogrifo"],
+          "correct": 1
+        },
+        {
+          "id": "hp-06",
+          "question": "¿Cuál es la posición de Harry en Quidditch?",
+          "options": ["Cazador", "Guardián", "Buscador", "Golpeador"],
+          "correct": 2
+        },
+        {
+          "id": "hp-07",
+          "question": "¿Qué planta grita cuando la sacan de la tierra?",
+          "options": ["Sauce Boxeador", "Mandrágora", "Tentacula Venenosa", "Díctamo"],
+          "correct": 1
+        },
+        {
+          "id": "hp-08",
+          "question": "¿Cuál es el verdadero nombre del Señor Tenebroso?",
+          "options": [
+            "Tom Marvolo Riddle",
+            "Tom Salazar Riddle",
+            "Thomas Riddle Jr",
+            "Tom Gaunt Riddle"
+          ],
+          "correct": 0
+        },
+        {
+          "id": "hp-09",
+          "question": "¿Qué objeto hace invisible a quien lo usa?",
+          "options": [
+            "La Piedra de la Resurrección",
+            "El Mapa del Merodeador",
+            "La Capa de Invisibilidad",
+            "El Giratiempo"
+          ],
+          "correct": 2
+        },
+        {
+          "id": "hp-10",
+          "question": "¿Cuál es el hechizo para desarmar a un oponente?",
+          "options": ["Stupefy", "Expelliarmus", "Protego", "Impedimenta"],
+          "correct": 1
+        },
+        {
+          "id": "hp-11",
+          "question": "¿Quién es el padrino de Harry Potter?",
+          "options": ["Remus Lupin", "Sirius Black", "Arthur Weasley", "Alastor Moody"],
+          "correct": 1
+        },
+        {
+          "id": "hp-12",
+          "question": "¿Qué elfo doméstico ayuda a Harry en la Cámara de los Secretos?",
+          "options": ["Kreacher", "Winky", "Dobby", "Hokey"],
+          "correct": 2
+        }
+      ]
+    },
+    "deportes": {
+      "label": "Deportes",
+      "icon": "⚽",
+      "questions": [
+        {
+          "id": "dep-01",
+          "question": "¿Qué país ha ganado más Copas del Mundo de fútbol?",
+          "options": ["Alemania", "Argentina", "Brasil", "Italia"],
+          "correct": 2
+        },
+        {
+          "id": "dep-02",
+          "question": "¿En qué deporte se usa el término 'ace'?",
+          "options": ["Fútbol", "Tenis", "Básquetbol", "Béisbol"],
+          "correct": 1
+        },
+        {
+          "id": "dep-03",
+          "question": "¿Cuántos jugadores tiene un equipo de básquetbol en cancha?",
+          "options": ["4", "5", "6", "7"],
+          "correct": 1
+        },
+        {
+          "id": "dep-04",
+          "question": "¿En qué ciudad se celebraron los primeros Juegos Olímpicos modernos?",
+          "options": ["París", "Londres", "Atenas", "Roma"],
+          "correct": 2
+        },
+        {
+          "id": "dep-05",
+          "question": "¿Qué selección ganó la Copa del Mundo 2022 en Qatar?",
+          "options": ["Francia", "Argentina", "Brasil", "Croacia"],
+          "correct": 1
+        },
+        {
+          "id": "dep-06",
+          "question": "¿Cuánto dura un partido de fútbol reglamentario?",
+          "options": ["80 minutos", "90 minutos", "100 minutos", "120 minutos"],
+          "correct": 1
+        },
+        {
+          "id": "dep-07",
+          "question": "¿Qué deporte se practica en el Tour de France?",
+          "options": ["Atletismo", "Natación", "Ciclismo", "Automovilismo"],
+          "correct": 2
+        },
+        {
+          "id": "dep-08",
+          "question": "¿Quién tiene más Grand Slams en tenis masculino?",
+          "options": ["Roger Federer", "Rafael Nadal", "Novak Djokovic", "Pete Sampras"],
+          "correct": 2
+        },
+        {
+          "id": "dep-09",
+          "question": "¿En qué país se originó el judo?",
+          "options": ["China", "Corea", "Japón", "Tailandia"],
+          "correct": 2
+        },
+        {
+          "id": "dep-10",
+          "question": "¿Qué equipo de la NBA tiene más campeonatos?",
+          "options": ["Chicago Bulls", "Los Angeles Lakers", "Boston Celtics", "Golden State Warriors"],
+          "correct": 2
+        },
+        {
+          "id": "dep-11",
+          "question": "¿Cuántos sets necesitas ganar para ganar un partido de voleibol?",
+          "options": ["2", "3", "4", "5"],
+          "correct": 1
+        },
+        {
+          "id": "dep-12",
+          "question": "¿En qué deporte se compite en la Fórmula 1?",
+          "options": ["Motociclismo", "Automovilismo", "Karting", "Rally"],
+          "correct": 1
+        }
+      ]
+    }
+  }
+}

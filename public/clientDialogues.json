@@ -1,0 +1,441 @@
+{
+  "clientProfiles": [
+    {
+      "id": "director-agresivo",
+      "name": "Ricardo Mendoza",
+      "title": "Director de Operaciones — Banco Continental",
+      "personality": "Agresivo, orientado a resultados, sin paciencia",
+      "officeClues": {
+        "trofeos": {
+          "description": "Trofeos de 'Mejor Rendimiento' 2019-2024. Placa: '15 años de relación con el banco'.",
+          "intel": { "loyalty": "alta", "yearsRelation": 15 },
+          "bianHint": "Cliente de largo plazo — priorizar continuidad del servicio"
+        },
+        "organigrama": {
+          "description": "Organigrama muestra que reporta directamente al CEO. Nota adhesiva: 'Board meeting viernes'.",
+          "intel": { "reportsTo": "CEO", "pressure": "extrema" },
+          "bianHint": "Alta presión ejecutiva — necesita respuestas concretas con timeline"
+        },
+        "documentos": {
+          "description": "Informe de auditoría SOX abierto en el escritorio. Área señalada: Pagos Internacionales.",
+          "intel": { "audit": "SOX", "area": "Pagos Internacionales" },
+          "bianHint": "Auditoría SOX implica Payment Execution y Compliance"
+        },
+        "celular": {
+          "description": "23 llamadas perdidas en las últimas 2 horas. 8 mensajes sin leer del equipo de TI.",
+          "intel": { "callCount": 23, "urgency": "crítica" },
+          "bianHint": "Urgencia máxima — cualquier demora aumenta el pánico exponencialmente"
+        },
+        "computador": {
+          "description": "Pantalla muestra dashboard de SWIFT con transacciones en cola. Error: 'Gateway Timeout'.",
+          "intel": { "system": "SWIFT Gateway", "serviceDomain": "Payment Execution" },
+          "bianHint": "Service Domain afectado: Payment Execution — Functional Pattern: Transact"
+        }
+      },
+      "crisisDialogues": {
+        "openingLine": "Llevamos 3 horas con los pagos internacionales caídos. Tengo al CEO encima y una auditoría SOX la próxima semana. Necesito una solución YA, no excusas.",
+        "responses": {
+          "withFullIntel": [
+            {
+              "text": "Señor Mendoza, entiendo la presión del board del viernes y la auditoría SOX. Ya identificamos que el Service Domain de Payment Execution tiene un timeout en el gateway SWIFT. Estamos activando el canal de contingencia — en 45 minutos tendremos trazabilidad completa para la auditoría.",
+              "correct": true,
+              "panicEffect": -25,
+              "feedback": "Perfecto. Demuestra conocimiento del perfil, usa terminología BIAN correcta, da timeline concreto y aborda la auditoría."
+            },
+            {
+              "text": "Estamos trabajando en ello. El equipo de TI está investigando el problema y le avisaremos cuando tengamos algo.",
+              "correct": false,
+              "panicEffect": 20,
+              "feedback": "Demasiado vago. Este perfil necesita respuestas concretas y timeline específico."
+            },
+            {
+              "text": "Hemos detectado un fallo en el módulo de pagos. Podríamos tener una solución en 24-48 horas.",
+              "correct": false,
+              "panicEffect": 30,
+              "feedback": "El timeline de 48 horas es inaceptable para un cliente con auditoría SOX inminente y presión del CEO."
+            }
+          ],
+          "withPartialIntel": [
+            {
+              "text": "Señor Mendoza, entendemos la urgencia. Nuestro equipo ya está sobre el incidente de pagos internacionales. Déjeme confirmar los detalles del impacto para darle un timeline preciso.",
+              "correct": true,
+              "panicEffect": -10,
+              "feedback": "Bueno. Reconoce la urgencia y pide detalles sin prometer en falso. Pero falta profundidad BIAN."
+            },
+            {
+              "text": "Vamos a revisar qué está pasando con el sistema de pagos. Le pido paciencia mientras investigamos.",
+              "correct": false,
+              "panicEffect": 15,
+              "feedback": "Pedir paciencia a este perfil es contraproducente."
+            }
+          ],
+          "withNoIntel": [
+            {
+              "text": "Cuénteme los detalles del problema. ¿Desde cuándo está ocurriendo y qué sistemas están afectados?",
+              "correct": true,
+              "panicEffect": 5,
+              "feedback": "Es lo único disponible sin información previa, pero este perfil esperaba que ya supieras."
+            },
+            {
+              "text": "Buenos días, ¿en qué puedo ayudarle?",
+              "correct": false,
+              "panicEffect": 25,
+              "feedback": "Totalmente desconectado del contexto de crisis. El cliente siente que no le importa."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "directora-analitica",
+      "name": "Carmen Herrera",
+      "title": "Gerente de Riesgos — Banco Nacional",
+      "personality": "Analítica, metódica, necesita datos antes que promesas",
+      "officeClues": {
+        "trofeos": {
+          "description": "Certificados de ISO 27001 y ISO 31000. Placa: '8 años como cliente preferente'.",
+          "intel": { "loyalty": "media-alta", "yearsRelation": 8 },
+          "bianHint": "Cliente orientado a estándares — hablar en términos de frameworks"
+        },
+        "organigrama": {
+          "description": "Organigrama muestra que reporta al Chief Risk Officer. Su área tiene 45 personas.",
+          "intel": { "reportsTo": "CRO", "pressure": "alta" },
+          "bianHint": "Reporta al CRO — necesita métricas de riesgo operacional cuantificadas"
+        },
+        "documentos": {
+          "description": "Documento abierto: 'Matriz de Riesgo Operacional Q4'. Resaltado: scoring de disponibilidad del core.",
+          "intel": { "audit": "Riesgo Operacional", "area": "Disponibilidad Core" },
+          "bianHint": "Preocupación central: disponibilidad — Service Domain: System Administration"
+        },
+        "celular": {
+          "description": "5 llamadas hoy. Último mensaje: 'Carmen, necesito el RCA antes del jueves'.",
+          "intel": { "callCount": 5, "urgency": "alta" },
+          "bianHint": "Necesita Root Cause Analysis — enfoque en diagnóstico, no en parches"
+        },
+        "computador": {
+          "description": "Pantalla muestra Grafana con latencia del core bancario en pico: 12,000ms. Alertas en rojo.",
+          "intel": { "system": "Core Bancario", "serviceDomain": "System Administration" },
+          "bianHint": "Service Domain: System Administration — Functional Pattern: Operate"
+        }
+      },
+      "crisisDialogues": {
+        "openingLine": "La latencia del core lleva 6 horas por encima de los 12 segundos. Necesito el Root Cause Analysis con datos concretos. ¿Tienen métricas o estamos adivinando?",
+        "responses": {
+          "withFullIntel": [
+            {
+              "text": "Doctora Herrera, tenemos las métricas de Grafana identificadas. El Service Domain de System Administration muestra degradación en el Functional Pattern Operate. La causa raíz apunta a contención en el pool de conexiones del core. Le preparo el RCA formal con timeline de 3 puntos: causa, mitigación inmediata y plan correctivo para el jueves.",
+              "correct": true,
+              "panicEffect": -25,
+              "feedback": "Excelente. Habla en datos, usa terminología BIAN, ofrece RCA estructurado y respeta el deadline."
+            },
+            {
+              "text": "No se preocupe, ya estamos resolviendo el tema de la latencia. Todo estará bien pronto.",
+              "correct": false,
+              "panicEffect": 25,
+              "feedback": "Este perfil rechaza respuestas sin datos. 'No se preocupe' es la peor respuesta para una analista."
+            },
+            {
+              "text": "Hemos reiniciado los servidores y la latencia bajó temporalmente. Seguimos monitoreando.",
+              "correct": false,
+              "panicEffect": 15,
+              "feedback": "Reiniciar sin RCA es un parche. Este perfil necesita la causa raíz, no un paliativo."
+            }
+          ],
+          "withPartialIntel": [
+            {
+              "text": "Doctora Herrera, hemos identificado anomalías en el core bancario. Estamos recopilando las métricas de latencia para construir el RCA. ¿Puede compartirnos los umbrales definidos en su matriz de riesgo para alinear el análisis?",
+              "correct": true,
+              "panicEffect": -10,
+              "feedback": "Bien. Muestra proceso analítico y pide información técnica relevante."
+            },
+            {
+              "text": "Estamos investigando la causa de la latencia. Le enviaremos un reporte cuando lo tengamos.",
+              "correct": false,
+              "panicEffect": 10,
+              "feedback": "Demasiado pasivo para una cliente que ya tiene deadline del jueves."
+            }
+          ],
+          "withNoIntel": [
+            {
+              "text": "Necesito entender el alcance del problema. ¿Puede mostrarme los dashboards actuales y los SLAs comprometidos?",
+              "correct": true,
+              "panicEffect": 5,
+              "feedback": "Correcto sin información previa — pide datos técnicos como ella espera."
+            },
+            {
+              "text": "Déjeme revisar qué está pasando y le llamo en una hora.",
+              "correct": false,
+              "panicEffect": 20,
+              "feedback": "Inaceptable. Ella ya tiene datos y espera que tú también llegues preparado."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "gerente-politico",
+      "name": "Fernando Castillo",
+      "title": "Subgerente General — Cooperativa Financiera del Sur",
+      "personality": "Político, diplomático, le importa cómo se ve ante el directorio",
+      "officeClues": {
+        "trofeos": {
+          "description": "Fotos con políticos y empresarios locales. Premio 'Cooperativa del Año 2022'.",
+          "intel": { "loyalty": "media", "yearsRelation": 4 },
+          "bianHint": "Cliente de perfil público — la reputación es su mayor preocupación"
+        },
+        "organigrama": {
+          "description": "Organigrama muestra un directorio de 9 personas. Post-it: 'Asamblea de socios en 15 días'.",
+          "intel": { "reportsTo": "Directorio (9 miembros)", "pressure": "alta-política" },
+          "bianHint": "Presión del directorio — necesita una narrativa para la asamblea"
+        },
+        "documentos": {
+          "description": "Carta de reclamo de un socio mayoritario sobre la app móvil. Subrayado: 'experiencia inaceptable'.",
+          "intel": { "audit": "Reclamo socio", "area": "App Móvil / Canales Digitales" },
+          "bianHint": "Área afectada: Customer Access — Channel Activity Management"
+        },
+        "celular": {
+          "description": "3 llamadas. Último WhatsApp del presidente del directorio: 'Fernando, resuelve esto antes de la asamblea'.",
+          "intel": { "callCount": 3, "urgency": "media-alta" },
+          "bianHint": "Deadline político, no técnico — la solución debe ser presentable"
+        },
+        "computador": {
+          "description": "Pantalla muestra app móvil con error 500 en transferencias. Review de 1 estrella visible.",
+          "intel": { "system": "App Móvil", "serviceDomain": "Channel Activity Management" },
+          "bianHint": "Service Domain: Channel Activity Management — Fulfill pattern"
+        }
+      },
+      "crisisDialogues": {
+        "openingLine": "Los socios están furiosos con la app. Tengo una asamblea en 15 días y el presidente del directorio me está presionando. Necesito algo que yo pueda presentar como avance.",
+        "responses": {
+          "withFullIntel": [
+            {
+              "text": "Don Fernando, entiendo la presión de la asamblea y del directorio. Le propongo esto: solucionamos el error del Channel Activity Management esta semana, y le preparamos un informe ejecutivo que muestre el plan de mejora continua de la app. Así usted tiene una narrativa de avance concreto para los socios.",
+              "correct": true,
+              "panicEffect": -25,
+              "feedback": "Perfecto. Entiende que necesita un 'entregable político' además de la solución técnica."
+            },
+            {
+              "text": "El error 500 en la app es un bug del backend. Lo corregiremos en el próximo sprint.",
+              "correct": false,
+              "panicEffect": 15,
+              "feedback": "Demasiado técnico para este perfil. No le da lo que necesita para la asamblea."
+            },
+            {
+              "text": "Deberían haber actualizado la app cuando se lo recomendamos hace 6 meses.",
+              "correct": false,
+              "panicEffect": 30,
+              "feedback": "Culpar al cliente es la peor estrategia posible, especialmente con un perfil político."
+            }
+          ],
+          "withPartialIntel": [
+            {
+              "text": "Don Fernando, ya estamos al tanto del problema con la app móvil. Le propongo una reunión rápida para definir qué necesita presentar en la asamblea y alineamos la solución técnica con ese timeline.",
+              "correct": true,
+              "panicEffect": -10,
+              "feedback": "Bien. Se enfoca en lo que importa al cliente: la narrativa para el directorio."
+            },
+            {
+              "text": "Vamos a revisar el problema técnico y le damos un diagnóstico.",
+              "correct": false,
+              "panicEffect": 10,
+              "feedback": "No aborda su preocupación real: la asamblea y el directorio."
+            }
+          ],
+          "withNoIntel": [
+            {
+              "text": "Cuénteme más sobre la situación. ¿Qué es lo más importante que necesita resolver primero?",
+              "correct": true,
+              "panicEffect": 5,
+              "feedback": "Sin información, esta pregunta abierta le permite al cliente revelar su prioridad real."
+            },
+            {
+              "text": "Necesitamos un ticket formal para empezar a investigar.",
+              "correct": false,
+              "panicEffect": 20,
+              "feedback": "Pedir burocracia a un cliente en crisis política es desconectarse totalmente."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "cto-tecnico",
+      "name": "Alejandra Vega",
+      "title": "CTO — Fintech Rápida",
+      "personality": "Técnica, directa, habla en código, quiere peer-to-peer",
+      "officeClues": {
+        "trofeos": {
+          "description": "Hackathon trophies y certificaciones AWS/GCP. Sticker: 'Move fast and break things'.",
+          "intel": { "loyalty": "baja", "yearsRelation": 2 },
+          "bianHint": "Cliente nueva, fintech — evalúa constantemente alternativas"
+        },
+        "organigrama": {
+          "description": "Organigrama flat — solo 3 niveles. Ella reporta directo a los founders.",
+          "intel": { "reportsTo": "Founders", "pressure": "velocidad" },
+          "bianHint": "Presión de velocidad startup — time-to-market es la métrica clave"
+        },
+        "documentos": {
+          "description": "Laptop con 15 tabs abiertas. Documento: 'Evaluación de proveedores API - Q1'. Tu empresa está en amarillo.",
+          "intel": { "audit": "Evaluación proveedores", "area": "APIs / Integración" },
+          "bianHint": "Está evaluando competidores — riesgo de churn si no resuelves rápido"
+        },
+        "celular": {
+          "description": "Slack en el celular. Canal #infra con 200 mensajes no leídos. Status: 🔥.",
+          "intel": { "callCount": 0, "urgency": "alta-técnica" },
+          "bianHint": "Se comunica por Slack, no por teléfono — preferencia de canal digital"
+        },
+        "computador": {
+          "description": "Terminal abierta con curl commands fallando. Error: 'API Rate Limit Exceeded — Service Domain: Product Directory'.",
+          "intel": { "system": "API Gateway", "serviceDomain": "Product Directory" },
+          "bianHint": "Service Domain: Product Directory — patrón Register"
+        }
+      },
+      "crisisDialogues": {
+        "openingLine": "Su API de Product Directory nos está tirando rate limits desde las 3am. Estamos evaluando migrar a otro proveedor. Necesito saber si pueden escalar o no — sin vueltas.",
+        "responses": {
+          "withFullIntel": [
+            {
+              "text": "Alejandra, revisé los logs — el rate limit del Product Directory se disparó por un cambio en el burst policy de las 2am. Ya estoy escalando el throughput del API Gateway y te mando el nuevo rate limit por Slack en 20 minutos. También quiero revisar tu evaluación de proveedores — podemos ofrecerte un tier dedicado.",
+              "correct": true,
+              "panicEffect": -25,
+              "feedback": "Habla su idioma técnico, conoce el problema específico, responde por su canal preferido y aborda el riesgo de churn."
+            },
+            {
+              "text": "Lamentamos las molestias. Nuestro equipo de soporte está revisando su caso y le enviaremos una actualización por email.",
+              "correct": false,
+              "panicEffect": 30,
+              "feedback": "Respuesta corporate que una CTO de fintech detesta. Email es el canal equivocado."
+            },
+            {
+              "text": "Los rate limits están configurados según el contrato. Podemos revisar un upgrade de plan si lo necesita.",
+              "correct": false,
+              "panicEffect": 20,
+              "feedback": "Esconderse detrás del contrato cuando la cliente evalúa competidores es suicidio comercial."
+            }
+          ],
+          "withPartialIntel": [
+            {
+              "text": "Alejandra, estoy viendo los rate limits del API Gateway. Dame 15 minutos para verificar qué cambió en el burst policy y te paso la solución directo. ¿Slack o aquí mismo?",
+              "correct": true,
+              "panicEffect": -10,
+              "feedback": "Bien. Habla técnico, da timeline corto, pregunta por canal de preferencia."
+            },
+            {
+              "text": "Vamos a abrir un ticket con el equipo de infraestructura para revisar los rate limits.",
+              "correct": false,
+              "panicEffect": 15,
+              "feedback": "Demasiado lento y burocrático para una fintech que puede migrar en días."
+            }
+          ],
+          "withNoIntel": [
+            {
+              "text": "Pásame los logs del error y el endpoint afectado. Lo reviso directo.",
+              "correct": true,
+              "panicEffect": 5,
+              "feedback": "Sin contexto previo, pedir logs técnicos es lo correcto con este perfil."
+            },
+            {
+              "text": "¿Puede enviarme un email describiendo el problema?",
+              "correct": false,
+              "panicEffect": 25,
+              "feedback": "Pedir email a una CTO de fintech en crisis es la señal de que estás desconectado."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "compliance-officer",
+      "name": "Eduardo Paredes",
+      "title": "Chief Compliance Officer — Banco de Inversiones Pacífico",
+      "personality": "Cauteloso, normativo, cada palabra tiene peso legal",
+      "officeClues": {
+        "trofeos": {
+          "description": "Diplomas de Derecho y MBA. Certificación CAMS (Anti-lavado). '12 años de relación con el banco'.",
+          "intel": { "loyalty": "alta", "yearsRelation": 12 },
+          "bianHint": "Cliente de confianza pero cada promesa se interpreta como compromiso contractual"
+        },
+        "organigrama": {
+          "description": "Reporta al Board de Compliance. Nota: 'Revisión regulatoria SBS próximo mes'.",
+          "intel": { "reportsTo": "Board de Compliance", "pressure": "regulatoria" },
+          "bianHint": "Presión del regulador — todo debe estar documentado y auditable"
+        },
+        "documentos": {
+          "description": "Circular de la SBS sobre reportes de operaciones sospechosas. Post-it: 'Plazo: 30 días'.",
+          "intel": { "audit": "SBS - Operaciones Sospechosas", "area": "AML/KYC" },
+          "bianHint": "Regulatory Compliance — Service Domain: Compliance Reporting"
+        },
+        "celular": {
+          "description": "2 llamadas del regulador. Email abierto: 'Requerimiento de información — plazo perentorio'.",
+          "intel": { "callCount": 2, "urgency": "regulatoria-crítica" },
+          "bianHint": "Regulador ya contactó — cada día de delay es riesgo de sanción"
+        },
+        "computador": {
+          "description": "Sistema de monitoreo de transacciones mostrando alertas AML sin procesar. Cola: 847 alertas.",
+          "intel": { "system": "Sistema AML", "serviceDomain": "Compliance Reporting" },
+          "bianHint": "Service Domain: Compliance Reporting + Financial Transaction Analysis"
+        }
+      },
+      "crisisDialogues": {
+        "openingLine": "El sistema de monitoreo AML tiene 847 alertas sin procesar y la SBS nos pidió un reporte en 30 días. Si no cumplimos, la sanción es millonaria. Necesito que me garanticen que el sistema va a funcionar.",
+        "responses": {
+          "withFullIntel": [
+            {
+              "text": "Doctor Paredes, entiendo la criticidad del requerimiento de la SBS. Nuestro plan: primero, estabilizamos el Service Domain de Compliance Reporting para procesar la cola de 847 alertas esta semana. Segundo, activamos Financial Transaction Analysis para el filtrado automático. Le entrego un informe documentado de cada paso para su archivo regulatorio. No le digo 'garantía' porque sería irresponsable — le digo plan concreto con evidencia auditable.",
+              "correct": true,
+              "panicEffect": -25,
+              "feedback": "Excepcional. No promete garantías (que un abogado rechazaría), ofrece plan auditable, y usa Service Domains correctos."
+            },
+            {
+              "text": "Le garantizo que todo estará resuelto antes del plazo de la SBS.",
+              "correct": false,
+              "panicEffect": 15,
+              "feedback": "Un compliance officer sabe que las garantías verbales no tienen valor legal. Pierde credibilidad."
+            },
+            {
+              "text": "Podemos procesar las alertas manualmente mientras arreglamos el sistema.",
+              "correct": false,
+              "panicEffect": 20,
+              "feedback": "847 alertas manuales implican riesgo de error humano — inaceptable para compliance."
+            }
+          ],
+          "withPartialIntel": [
+            {
+              "text": "Doctor Paredes, conozco la presión regulatoria. Necesito revisar el estado actual del sistema AML para darle un plan con pasos documentados y trazables. ¿Puede darme acceso a los logs de las alertas pendientes?",
+              "correct": true,
+              "panicEffect": -10,
+              "feedback": "Bien. Pide datos concretos y habla de documentación y trazabilidad — su idioma."
+            },
+            {
+              "text": "Vamos a asignar más recursos al problema para acelerar la resolución.",
+              "correct": false,
+              "panicEffect": 10,
+              "feedback": "Vago. Un compliance officer necesita plan, no promesas de recursos."
+            }
+          ],
+          "withNoIntel": [
+            {
+              "text": "Necesito entender el requerimiento regulatorio exacto y el estado actual del sistema. ¿Tiene el oficio de la SBS para dimensionar el alcance?",
+              "correct": true,
+              "panicEffect": 5,
+              "feedback": "Correcto. Pide el documento regulatorio — demuestra que entiende el contexto legal."
+            },
+            {
+              "text": "No se preocupe, estos temas se resuelven siempre antes de los plazos.",
+              "correct": false,
+              "panicEffect": 30,
+              "feedback": "Minimizar riesgo regulatorio frente a un compliance officer es la peor señal posible."
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "scenarioMapping": {
+    "scenario-1": "director-agresivo",
+    "scenario-2": "directora-analitica",
+    "scenario-3": "gerente-politico",
+    "scenario-4": "cto-tecnico",
+    "scenario-5": "compliance-officer"
+  }
+}
