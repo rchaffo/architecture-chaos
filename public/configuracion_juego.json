@@ -7,7 +7,7 @@
     "fecha": "2026-01"
   },
   "configuracion_sala": {
-    "jugadores_min": 2,
+    "jugadores_min": 1,
     "jugadores_max": 4,
     "nombre_sistema_legacy": "CoreBanking Mainframe v7.2",
     "salud_sistema_inicial": 100,
