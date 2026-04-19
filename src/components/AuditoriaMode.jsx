@@ -20,6 +20,7 @@ const C = {
 };
 
 const TIME_BY_DIFFICULTY = { 'FÁCIL': 60, 'FACIL': 60, 'MEDIA': 75, 'ALTA': 90, 'EXPERTO': 120 };
+const EXAM_SIZE = 20; // preguntas por examen (cambia esto si quieres más o menos)
 
 const ANIM = `
 @keyframes ac-pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.04); } }
@@ -122,12 +123,40 @@ export default function AuditoriaMode({ preguntas: preguntasProp }) {
 
   const startExam = () => {
     if (!preguntas.length) return;
+
+    // 1. Leer preguntas vistas recientemente (localStorage)
+    let recentIds = [];
+    try {
+      const raw = typeof window !== 'undefined' ? window.localStorage.getItem('ac_auditoria_recent') : null;
+      recentIds = raw ? JSON.parse(raw) : [];
+    } catch (e) { recentIds = []; }
+
+    // 2. Separar preguntas no vistas vs vistas recientemente
+    const notSeen = preguntas.filter(q => !recentIds.includes(q.id));
+    const seenRecently = preguntas.filter(q => recentIds.includes(q.id));
+
+    // 3. Barajar cada grupo por separado, las no vistas van primero
+    const shuffled = [...shuffleArray(notSeen), ...shuffleArray(seenRecently)];
+
+    // 4. Tomar las primeras EXAM_SIZE preguntas, balanceando por dificultad si hay suficientes
+    const selected = selectBalanced(shuffled, EXAM_SIZE);
+
+    // 5. Barajar también las opciones dentro de cada pregunta (para que la correcta no esté siempre en la misma letra)
+    const withShuffledOptions = selected.map(q => shuffleQuestionOptions(q));
+
+    // 6. Guardar los IDs de las preguntas usadas en localStorage para la próxima vez
+    try {
+      const newRecent = [...withShuffledOptions.map(q => q.id), ...recentIds].slice(0, EXAM_SIZE * 2);
+      if (typeof window !== 'undefined') window.localStorage.setItem('ac_auditoria_recent', JSON.stringify(newRecent));
+    } catch (e) {}
+
+    setPreguntas(withShuffledOptions);
     examStartTsRef.current = Date.now();
     startTsRef.current = Date.now();
     setCurrentIdx(0);
     setAnswers([]);
     setSelectedIdx(null);
-    setTimeLeft(getTimeLimit(preguntas[0]));
+    setTimeLeft(getTimeLimit(withShuffledOptions[0]));
     setScreen('question');
   };
 
@@ -152,20 +181,21 @@ export default function AuditoriaMode({ preguntas: preguntasProp }) {
     setSelectedIdx(idx);
     setScreen('feedback');
     if (!isCorrect) setShakeKey(k => k + 1);
+    // Ya NO hay auto-avance. El jugador avanza con el botón "Siguiente pregunta".
+  };
 
-    setTimeout(() => {
-      if (currentIdx + 1 >= preguntas.length) {
-        setTotalTime(Math.round((Date.now() - examStartTsRef.current) / 1000));
-        setScreen('results');
-      } else {
-        const next = currentIdx + 1;
-        setCurrentIdx(next);
-        setSelectedIdx(null);
-        startTsRef.current = Date.now();
-        setTimeLeft(getTimeLimit(preguntas[next]));
-        setScreen('question');
-      }
-    }, 1600);
+  const advanceToNext = () => {
+    if (currentIdx + 1 >= preguntas.length) {
+      setTotalTime(Math.round((Date.now() - examStartTsRef.current) / 1000));
+      setScreen('results');
+    } else {
+      const next = currentIdx + 1;
+      setCurrentIdx(next);
+      setSelectedIdx(null);
+      startTsRef.current = Date.now();
+      setTimeLeft(getTimeLimit(preguntas[next]));
+      setScreen('question');
+    }
   };
 
   const restart = () => {
@@ -208,6 +238,8 @@ export default function AuditoriaMode({ preguntas: preguntasProp }) {
             onSelect={(i) => { if (screen === 'question') setSelectedIdx(i); }}
             onConfirm={() => submitAnswer(selectedIdx)}
             onSkip={() => submitAnswer(null)}
+            onNext={advanceToNext}
+            isLast={currentIdx + 1 >= preguntas.length}
           />
         )}
         {screen === 'results' && (
@@ -303,7 +335,7 @@ function IntroScreen({ totalQ, totalPts, playerName, setPlayerName, onStart }) {
 // ============================================================
 //  PANTALLA: PREGUNTA + FEEDBACK
 // ============================================================
-function QuestionScreen({ q, idx, total, totalPts, earned, timeLeft, timeTotal, selectedIdx, showFeedback, shakeKey, onSelect, onConfirm, onSkip }) {
+function QuestionScreen({ q, idx, total, totalPts, earned, timeLeft, timeTotal, selectedIdx, showFeedback, shakeKey, onSelect, onConfirm, onSkip, onNext, isLast }) {
   const rawOpciones = q?.opciones ?? q?.respuestas ?? [];
   // Normaliza: soporta strings u objetos {id, texto, es_correcta, explicacion}
   const opciones = rawOpciones.map(o => typeof o === 'string' ? { texto: o } : o);
@@ -450,6 +482,25 @@ function QuestionScreen({ q, idx, total, totalPts, earned, timeLeft, timeTotal, 
               cursor: selectedIdx !== null ? 'pointer' : 'not-allowed',
             }}>
             Confirmar respuesta →
+          </button>
+        </div>
+      )}
+
+      {/* Footer cuando hay feedback: botón siguiente, sin límite de tiempo */}
+      {showFeedback && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 14, borderTop: `1px solid ${C.border}`, gap: 12 }}>
+          <div style={{ fontSize: 12, color: C.muted, fontStyle: 'italic' }}>
+            {userCorrect ? '✓ Respuesta correcta. ' : userAnswered ? '✗ Respuesta incorrecta. ' : '⏱ Tiempo agotado. '}
+            Tómate tu tiempo para leer la explicación.
+          </div>
+          <button className="ac-btn ac-breath" onClick={onNext}
+            style={{
+              background: C.accent, color: C.accentDark,
+              border: `1px solid ${C.accent}`,
+              padding: '10px 22px', borderRadius: 6, fontSize: 13, fontWeight: 500,
+              whiteSpace: 'nowrap',
+            }}>
+            {isLast ? 'Ver resultados →' : 'Siguiente pregunta →'}
           </button>
         </div>
       )}
@@ -688,3 +739,59 @@ function highlightKeywords(text) {
   const safe = escape(text);
   return safe.replace(/\b(NO|EXCEPTO|FALSA|INCORRECTA)\b/g, `<span style="color:${C.warning};font-weight:500">$1</span>`);
 }
+
+// Fisher-Yates shuffle (in-place copy, no muta el original)
+function shuffleArray(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// Selecciona N preguntas intentando balancear dificultades.
+// Si no hay suficiente variedad, toma las primeras N después del shuffle.
+function selectBalanced(shuffled, n) {
+  if (shuffled.length <= n) return shuffled;
+  // Agrupa por dificultad
+  const byDiff = {};
+  shuffled.forEach(q => {
+    const d = (q.dificultad || 'MEDIA').toUpperCase();
+    if (!byDiff[d]) byDiff[d] = [];
+    byDiff[d].push(q);
+  });
+  // Intenta distribuir proporcionalmente
+  const totalDiffs = Object.keys(byDiff).length;
+  const perDiff = Math.floor(n / totalDiffs);
+  const result = [];
+  Object.values(byDiff).forEach(group => {
+    result.push(...group.slice(0, perDiff));
+  });
+  // Rellenar hasta N con las preguntas restantes
+  const remaining = shuffled.filter(q => !result.includes(q));
+  while (result.length < n && remaining.length > 0) {
+    result.push(remaining.shift());
+  }
+  return shuffleArray(result).slice(0, n); // re-shuffle para que no queden agrupadas por dificultad
+}
+
+// Baraja las opciones de una pregunta manteniendo la referencia a la correcta
+function shuffleQuestionOptions(q) {
+  const rawOps = q.opciones ?? q.respuestas ?? [];
+  if (!rawOps.length) return q;
+  // Marca el índice original de la correcta antes de barajar
+  const originalCorrectIdx = findCorrectIdx(q);
+  // Crea array con índice original para rastrear después del shuffle
+  const withIdx = rawOps.map((op, i) => ({ op, originalIdx: i }));
+  const shuffled = shuffleArray(withIdx);
+  const newOps = shuffled.map(x => x.op);
+  const newCorrectIdx = shuffled.findIndex(x => x.originalIdx === originalCorrectIdx);
+  // Devuelve la pregunta con opciones barajadas y nuevo índice correcto
+  return {
+    ...q,
+    opciones: newOps,
+    respuesta_correcta: newCorrectIdx, // sobreescribe por si el JSON usaba índice numérico
+  };
+}
+

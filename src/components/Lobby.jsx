@@ -2,149 +2,108 @@
 
 /**
  * src/components/Lobby.jsx
- * Usa el socket singleton — mismo socketId en Lobby y en GameBoard.
+ * Rediseño visual v2 · Mantiene toda la lógica de socket singleton intacta.
+ * Flujo: choose (crear/unirme) → form → room (en sala, esperando start).
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter }         from "next/navigation";
-import { getSocket }         from "../lib/socketSingleton";
-import { useGameStore }      from "../store/gameStore";
+import { useRouter } from "next/navigation";
+import { getSocket } from "../lib/socketSingleton";
+import { useGameStore } from "../store/gameStore";
 
 const MAX_PLAYERS = 4;
-const MIN_PLAYERS = 1; // 1 para testing solo; cambiar a 2 en producción
+const MIN_PLAYERS = 1; // cambiar a 2 en producción
 
-// ─── Formas SVG ───────────────────────────────────────────────────────────────
+// Paleta consistente con AuditoriaMode
+const C = {
+  base: '#0A0E14', surface: '#14181F', raised: '#1C212B',
+  border: '#1C212B', borderStrong: '#3A414F',
+  text: '#E6E8EC', muted: '#9CA3AF', hint: '#6B7280',
+  accent: '#60A5FA', accentDark: '#042C53',
+  success: '#34D399', successDark: '#04342C',
+  warning: '#FBBF24', danger: '#F87171',
+};
+
+const ANIM = `
+@keyframes ac-fadein { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes ac-pulse-dot { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+@keyframes ac-spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+@keyframes ac-breath { 0%,100% { opacity: 1; } 50% { opacity: .82; } }
+.lob-fadein { animation: ac-fadein .45s ease-out both; }
+.lob-pulse-dot { animation: ac-pulse-dot 1.4s ease-in-out infinite; }
+.lob-spin { animation: ac-spin 1s linear infinite; }
+.lob-breath { animation: ac-breath 2.4s ease-in-out infinite; }
+.lob-btn { transition: transform .12s ease, opacity .15s ease, border-color .15s ease, background .15s ease; cursor: pointer; }
+.lob-btn:hover:not(:disabled) { opacity: .92; }
+.lob-btn:active:not(:disabled) { transform: scale(.98); }
+.lob-card { transition: transform .15s ease, border-color .15s ease, background .15s ease; cursor: pointer; }
+.lob-card:hover:not(:disabled) { transform: translateY(-2px); border-color: ${C.borderStrong}; }
+.lob-role { transition: transform .12s ease, border-color .15s ease, background .15s ease; }
+.lob-role:hover:not(:disabled) { transform: translateY(-1px); }
+.lob-input:focus { border-color: ${C.accent}; outline: none; }
+`;
+
+// ─── Formas SVG por rol ────────────────────────────────────────────────────
 const ROLE_SHAPES = {
-  hexagon: ({ color }) => (
-    <svg viewBox="0 0 48 48" className="w-10 h-10">
-      <polygon points="24,4 42,14 42,34 24,44 6,34 6,14" fill={color} opacity="0.2" stroke={color} strokeWidth="2"/>
-      <polygon points="24,10 38,18 38,30 24,38 10,30 10,18" fill={color} opacity="0.5"/>
+  hexagon: ({ color, size = 32 }) => (
+    <svg width={size} height={size} viewBox="0 0 48 48">
+      <polygon points="24,4 42,14 42,34 24,44 6,34 6,14" fill={color} opacity="0.2" stroke={color} strokeWidth="2" />
+      <polygon points="24,10 38,18 38,30 24,38 10,30 10,18" fill={color} opacity="0.5" />
     </svg>
   ),
-  circle: ({ color }) => (
-    <svg viewBox="0 0 48 48" className="w-10 h-10">
-      <circle cx="24" cy="24" r="20" fill={color} opacity="0.2" stroke={color} strokeWidth="2"/>
-      <circle cx="24" cy="24" r="12" fill={color} opacity="0.6"/>
+  circle: ({ color, size = 32 }) => (
+    <svg width={size} height={size} viewBox="0 0 48 48">
+      <circle cx="24" cy="24" r="20" fill={color} opacity="0.2" stroke={color} strokeWidth="2" />
+      <circle cx="24" cy="24" r="12" fill={color} opacity="0.6" />
     </svg>
   ),
-  square: ({ color }) => (
-    <svg viewBox="0 0 48 48" className="w-10 h-10">
-      <rect x="4" y="4" width="40" height="40" rx="4" fill={color} opacity="0.2" stroke={color} strokeWidth="2"/>
-      <rect x="12" y="12" width="24" height="24" rx="2" fill={color} opacity="0.6"/>
+  square: ({ color, size = 32 }) => (
+    <svg width={size} height={size} viewBox="0 0 48 48">
+      <rect x="4" y="4" width="40" height="40" rx="4" fill={color} opacity="0.2" stroke={color} strokeWidth="2" />
+      <rect x="12" y="12" width="24" height="24" rx="2" fill={color} opacity="0.6" />
     </svg>
   ),
-  diamond: ({ color }) => (
-    <svg viewBox="0 0 48 48" className="w-10 h-10">
-      <polygon points="24,2 46,24 24,46 2,24" fill={color} opacity="0.2" stroke={color} strokeWidth="2"/>
-      <polygon points="24,10 38,24 24,38 10,24" fill={color} opacity="0.6"/>
+  diamond: ({ color, size = 32 }) => (
+    <svg width={size} height={size} viewBox="0 0 48 48">
+      <polygon points="24,2 46,24 24,46 2,24" fill={color} opacity="0.2" stroke={color} strokeWidth="2" />
+      <polygon points="24,10 38,24 24,38 10,24" fill={color} opacity="0.6" />
     </svg>
   ),
 };
-
-function RoleCard({ role, isSelected, isTaken, takenBy, onClick }) {
-  const Shape = ROLE_SHAPES[role.icono_forma] || ROLE_SHAPES.circle;
-  return (
-    <button
-      onClick={() => !isTaken && onClick(role.id)}
-      disabled={isTaken}
-      className={[
-        "relative flex flex-col gap-3 p-4 rounded-xl border-2 text-left transition-all duration-200",
-        "focus:outline-none",
-        isTaken   ? "opacity-50 cursor-not-allowed border-gray-700 bg-gray-800/30"
-        : isSelected ? "bg-gray-800/70 shadow-lg scale-[1.02] cursor-pointer"
-        :              "border-gray-700 bg-gray-800/30 hover:bg-gray-800/60 hover:border-gray-500 cursor-pointer",
-      ].join(" ")}
-      style={isSelected ? { borderColor: role.color } : {}}
-    >
-      {isTaken && (
-        <span className="absolute top-2 right-2 text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded-full">
-          {takenBy || "Ocupado"}
-        </span>
-      )}
-      <div className="flex items-center gap-3">
-        <Shape color={role.color} />
-        <div>
-          <p className="font-bold text-sm" style={{ color: role.color }}>{role.nombre}</p>
-          <p className="text-xs text-gray-400 font-mono">{role.alias_juego}</p>
-        </div>
-      </div>
-      <p className="text-xs text-gray-400 leading-relaxed line-clamp-2">{role.descripcion}</p>
-      {isSelected && (
-        <ul className="mt-1 space-y-1">
-          {role.responsabilidades.slice(0, 3).map((r, i) => (
-            <li key={i} className="flex items-start gap-1.5 text-xs text-gray-300">
-              <span style={{ color: role.color }} className="mt-0.5 shrink-0">▸</span>{r}
-            </li>
-          ))}
-        </ul>
-      )}
-      {isSelected && (
-        <div className="absolute bottom-2 right-3 text-xs font-bold" style={{ color: role.color }}>
-          ✓ Seleccionado
-        </div>
-      )}
-    </button>
-  );
+function Shape({ kind, color, size }) {
+  const Cmp = ROLE_SHAPES[kind] || ROLE_SHAPES.circle;
+  return <Cmp color={color} size={size} />;
 }
 
-function PlayerAvatar({ player, rolesMap }) {
-  const role  = rolesMap[player.roleId];
-  const Shape = role ? (ROLE_SHAPES[role.icono_forma] || ROLE_SHAPES.circle) : null;
-  return (
-    <div className="flex items-center gap-2 bg-gray-800/60 rounded-lg px-3 py-2">
-      {Shape ? <Shape color={role.color} /> : (
-        <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center">
-          <span className="text-gray-400 text-xs">?</span>
-        </div>
-      )}
-      <div className="min-w-0">
-        <p className="text-sm font-semibold text-white truncate">{player.name}</p>
-        <p className="text-xs text-gray-400 truncate">{role ? role.nombre : "Sin rol"}</p>
-      </div>
-      {player.isReady && <span className="ml-auto text-green-400 text-xs font-bold shrink-0">✓ Listo</span>}
-    </div>
-  );
-}
-
-function ConnectionStatus({ status }) {
-  const cfg = {
-    connecting: { dot: "bg-yellow-400 animate-pulse", text: "Conectando...", color: "text-yellow-400" },
-    connected:  { dot: "bg-green-400",                text: "Conectado",     color: "text-green-400"  },
-    error:      { dot: "bg-red-400",                  text: "Sin conexión",  color: "text-red-400"    },
-    idle:       { dot: "bg-gray-600",                 text: "Desconectado",  color: "text-gray-500"   },
-  }[status] || { dot: "bg-gray-600", text: "—", color: "text-gray-500" };
-  return (
-    <div className="flex items-center gap-1.5">
-      <span className={`w-2 h-2 rounded-full ${cfg.dot}`} />
-      <span className={`text-xs font-mono ${cfg.color}`}>{cfg.text}</span>
-    </div>
-  );
-}
-
-// ─── Componente Principal ──────────────────────────────────────────────────────
+// ─── Componente Principal ──────────────────────────────────────────────────
 export default function Lobby() {
   const router = useRouter();
-  const { setPlayerIdentity, setRoomState: storeSetRoomState,
-          upsertPlayer, removePlayer, refreshHostStatus,
-          setGameConfig: storeSetGameConfig } = useGameStore();
+  const {
+    setPlayerIdentity,
+    setRoomState: storeSetRoomState,
+    upsertPlayer, removePlayer, refreshHostStatus,
+    setGameConfig: storeSetGameConfig,
+  } = useGameStore();
 
-  // ── Socket singleton ────────────────────────────────────────────────────────
   const socket = getSocket();
 
-  // ── Estado local ────────────────────────────────────────────────────────────
+  // ── Estado (lógica original intacta) ─────────────────────────────────────
   const [connectionStatus, setConnectionStatus] = useState("idle");
-  const [errorMsg,          setErrorMsg]         = useState("");
-  const [isJoining,         setIsJoining]        = useState(false);
-  const [isReady,           setIsReady]          = useState(false);
-  const [localRoomState,    setLocalRoomState]   = useState(null);
-  const [playerName,        setPlayerName]       = useState("");
-  const [roomCode,          setRoomCode]         = useState("");
-  const [selectedRoleId,    setSelectedRoleId]   = useState(null);
-  const [isCreatingRoom,    setIsCreatingRoom]   = useState(true);
-  const [gameConfig,        setGameConfig]       = useState(null);
-  const [configLoading,     setConfigLoading]    = useState(true);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [isJoining, setIsJoining] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+  const [localRoomState, setLocalRoomState] = useState(null);
+  const [playerName, setPlayerName] = useState("");
+  const [roomCode, setRoomCode] = useState("");
+  const [selectedRoleId, setSelectedRoleId] = useState(null);
+  const [isCreatingRoom, setIsCreatingRoom] = useState(true);
+  const [gameConfig, setGameConfig] = useState(null);
+  const [configLoading, setConfigLoading] = useState(true);
 
-  // ── Cargar JSON ─────────────────────────────────────────────────────────────
+  // NUEVO: paso del flujo — 'choose' o 'form'. Cuando hay localRoomState, se muestra pantalla de sala.
+  const [lobbyStep, setLobbyStep] = useState('choose');
+
+  // ── Cargar JSON (igual que original) ─────────────────────────────────────
   useEffect(() => {
     fetch("/configuracion_juego.json")
       .then((r) => r.json())
@@ -153,9 +112,8 @@ export default function Lobby() {
       .finally(() => setConfigLoading(false));
   }, [storeSetGameConfig]);
 
-  // ── Conectar socket y registrar eventos ────────────────────────────────────
+  // ── Socket + listeners (igual que original) ──────────────────────────────
   useEffect(() => {
-    // Conectar si no está conectado
     if (!socket.connected) {
       setConnectionStatus("connecting");
       socket.connect();
@@ -191,34 +149,32 @@ export default function Lobby() {
       if (newHostId) refreshHostStatus(newHostId);
       setLocalRoomState((prev) => prev ? { ...prev, players } : prev);
     };
-    // game:start — el socket singleton sigue vivo durante la navegación
     const onGameStart = ({ roomId }) => router.push(`/game/${roomId}`);
 
-    socket.on("connect",              onConnect);
-    socket.on("disconnect",           onDisconnect);
-    socket.on("connect_error",        onConnectError);
-    socket.on("room:state",           onRoomState);
-    socket.on("room:error",           onRoomError);
-    socket.on("room:player_updated",  onPlayerUpdated);
-    socket.on("room:player_joined",   onPlayerJoined);
-    socket.on("room:player_left",     onPlayerLeft);
-    socket.on("game:start",           onGameStart);
+    socket.on("connect", onConnect);
+    socket.on("disconnect", onDisconnect);
+    socket.on("connect_error", onConnectError);
+    socket.on("room:state", onRoomState);
+    socket.on("room:error", onRoomError);
+    socket.on("room:player_updated", onPlayerUpdated);
+    socket.on("room:player_joined", onPlayerJoined);
+    socket.on("room:player_left", onPlayerLeft);
+    socket.on("game:start", onGameStart);
 
     return () => {
-      // Solo quitar los listeners del Lobby — NO desconectar el socket
-      socket.off("connect",             onConnect);
-      socket.off("disconnect",          onDisconnect);
-      socket.off("connect_error",       onConnectError);
-      socket.off("room:state",          onRoomState);
-      socket.off("room:error",          onRoomError);
+      socket.off("connect", onConnect);
+      socket.off("disconnect", onDisconnect);
+      socket.off("connect_error", onConnectError);
+      socket.off("room:state", onRoomState);
+      socket.off("room:error", onRoomError);
       socket.off("room:player_updated", onPlayerUpdated);
-      socket.off("room:player_joined",  onPlayerJoined);
-      socket.off("room:player_left",    onPlayerLeft);
-      socket.off("game:start",          onGameStart);
+      socket.off("room:player_joined", onPlayerJoined);
+      socket.off("room:player_left", onPlayerLeft);
+      socket.off("game:start", onGameStart);
     };
   }, [socket, router, storeSetRoomState, upsertPlayer, removePlayer, refreshHostStatus]);
 
-  // ── Derivados ───────────────────────────────────────────────────────────────
+  // ── Derivados ────────────────────────────────────────────────────────────
   const rolesMap = gameConfig
     ? Object.fromEntries(gameConfig.roles.map((r) => [r.id, r]))
     : {};
@@ -231,13 +187,13 @@ export default function Lobby() {
       )
     : {};
 
-  const isHost          = localRoomState?.players[0]?.socketId === socket.id;
-  const canJoin         = playerName.trim().length >= 2 && !!selectedRoleId && connectionStatus === "connected" && !isJoining && !localRoomState;
+  const isHost = localRoomState?.players[0]?.socketId === socket.id;
+  const canJoin = playerName.trim().length >= 2 && !!selectedRoleId && connectionStatus === "connected" && !isJoining && !localRoomState;
   const canJoinExisting = canJoin && !isCreatingRoom && roomCode.trim().length === 6;
-  const canToggleReady  = !!localRoomState && !!selectedRoleId && !isJoining;
+  const canToggleReady = !!localRoomState && !!selectedRoleId && !isJoining;
   const allPlayersReady = !!localRoomState && localRoomState.players.length >= MIN_PLAYERS && localRoomState.players.every((p) => p.isReady);
 
-  // ── Handlers ────────────────────────────────────────────────────────────────
+  // ── Handlers (igual que original) ────────────────────────────────────────
   const handleCreateRoom = useCallback(() => {
     if (!canJoin) return;
     setIsJoining(true);
@@ -279,6 +235,9 @@ export default function Lobby() {
     setLocalRoomState(null);
     setIsReady(false);
     setErrorMsg("");
+    setLobbyStep('choose');
+    setSelectedRoleId(null);
+    setRoomCode("");
   }, [socket]);
 
   const handleKeyDown = useCallback((e) => {
@@ -286,231 +245,527 @@ export default function Lobby() {
     isCreatingRoom ? handleCreateRoom() : handleJoinRoom();
   }, [isCreatingRoom, handleCreateRoom, handleJoinRoom]);
 
-  // ── Renders de carga / error ────────────────────────────────────────────────
-  if (configLoading) return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-      <div className="text-center space-y-4">
-        <div className="w-12 h-12 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto" />
-        <p className="text-gray-400 font-mono text-sm">Cargando configuración...</p>
-      </div>
-    </div>
-  );
+  // ── Renders de carga / error ─────────────────────────────────────────────
+  if (configLoading) {
+    return (
+      <FullScreen>
+        <style dangerouslySetInnerHTML={{ __html: ANIM }} />
+        <div style={{ textAlign: 'center' }}>
+          <div className="lob-spin" style={{ width: 32, height: 32, border: `2px solid ${C.accent}`, borderTopColor: 'transparent', borderRadius: '50%', margin: '0 auto 14px' }} />
+          <p style={{ color: C.muted, fontFamily: 'ui-monospace, monospace', fontSize: 13 }}>Cargando configuración…</p>
+        </div>
+      </FullScreen>
+    );
+  }
+  if (!gameConfig) {
+    return (
+      <FullScreen>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ color: C.danger, fontSize: 32, marginBottom: 10 }}>⚠</div>
+          <p style={{ color: C.danger, fontFamily: 'ui-monospace, monospace' }}>{errorMsg}</p>
+        </div>
+      </FullScreen>
+    );
+  }
 
-  if (!gameConfig) return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
-      <div className="text-center space-y-3">
-        <div className="text-red-400 text-4xl">⚠</div>
-        <p className="text-red-300 font-mono">{errorMsg}</p>
-      </div>
-    </div>
-  );
+  // Determinar la pantalla activa
+  const activeScreen = localRoomState ? 'room' : lobbyStep;
 
-  // ── Render Principal ──────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gray-950 text-white flex flex-col">
+    <div style={{ minHeight: '100vh', background: C.base, color: C.text, display: 'flex', flexDirection: 'column', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
+      <style dangerouslySetInnerHTML={{ __html: ANIM }} />
 
       {/* Header */}
-      <header className="border-b border-gray-800 px-6 py-4">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-black tracking-tight">
-              <span className="text-indigo-400">Architecture</span>{" "}
-              <span className="text-red-400">Chaos</span>
-            </h1>
-            <p className="text-xs text-gray-500 font-mono mt-0.5">{gameConfig.textos_ui.etiqueta_tema}</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <ConnectionStatus status={connectionStatus} />
-            <a href="/manual" className="text-xs text-gray-400 hover:text-emerald-400 transition-colors border border-gray-700 px-3 py-1.5 rounded-lg hover:border-emerald-600">
-              📖 Manual
-            </a>
-            <a href="/auditoria" className="text-xs text-gray-400 hover:text-indigo-400 transition-colors border border-gray-700 px-3 py-1.5 rounded-lg hover:border-indigo-600">
-              {gameConfig.textos_ui.boton_auditoria} →
-            </a>
-          </div>
-        </div>
-      </header>
+      <Header connectionStatus={connectionStatus} textos={gameConfig.textos_ui} />
 
       {/* Body */}
-      <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-8 grid gap-8 lg:grid-cols-[1fr_320px]">
-        <div className="space-y-6">
+      <main style={{ flex: 1, maxWidth: 960, margin: '0 auto', width: '100%', padding: '32px 20px' }}>
+        {activeScreen === 'choose' && (
+          <ChooseScreen
+            onCreate={() => { setIsCreatingRoom(true); setLobbyStep('form'); }}
+            onJoin={() => { setIsCreatingRoom(false); setLobbyStep('form'); }}
+            gameConfig={gameConfig}
+          />
+        )}
 
-          {/* Hero */}
-          <div className="space-y-1">
-            <h2 className="text-2xl font-bold">
-              {localRoomState ? `Sala: ${localRoomState.roomId}` : "Unirse a la Misión"}
-            </h2>
-            <p className="text-gray-400 text-sm">
-              {localRoomState
-                ? `${localRoomState.players.length}/${MAX_PLAYERS} jugadores conectados`
-                : gameConfig.textos_ui.subtitulo_juego}
-            </p>
-          </div>
+        {activeScreen === 'form' && (
+          <FormScreen
+            mode={isCreatingRoom ? 'create' : 'join'}
+            gameConfig={gameConfig}
+            playerName={playerName} setPlayerName={setPlayerName}
+            roomCode={roomCode} setRoomCode={setRoomCode}
+            selectedRoleId={selectedRoleId}
+            onSelectRole={handleSelectRole}
+            takenRoles={takenRoles}
+            onKeyDown={handleKeyDown}
+            canJoin={isCreatingRoom ? canJoin : canJoinExisting}
+            isJoining={isJoining}
+            onSubmit={isCreatingRoom ? handleCreateRoom : handleJoinRoom}
+            onBack={() => setLobbyStep('choose')}
+            errorMsg={errorMsg}
+          />
+        )}
 
-          {/* Panel pre-sala */}
-          {!localRoomState && (
-            <div className="bg-gray-900/60 border border-gray-800 rounded-2xl p-5 space-y-5">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Tu nombre</label>
-                <input
-                  type="text" placeholder="Ej: María González"
-                  value={playerName} onChange={(e) => setPlayerName(e.target.value)}
-                  onKeyDown={handleKeyDown} maxLength={24}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
-                />
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex rounded-xl border border-gray-700 overflow-hidden">
-                  <button onClick={() => setIsCreatingRoom(true)}
-                    className={`flex-1 py-2.5 text-sm font-medium transition-colors ${isCreatingRoom ? "bg-indigo-600 text-white" : "text-gray-400 hover:text-white hover:bg-gray-800"}`}>
-                    Crear sala
-                  </button>
-                  <button onClick={() => setIsCreatingRoom(false)}
-                    className={`flex-1 py-2.5 text-sm font-medium transition-colors ${!isCreatingRoom ? "bg-indigo-600 text-white" : "text-gray-400 hover:text-white hover:bg-gray-800"}`}>
-                    Unirse con código
-                  </button>
-                </div>
-                {!isCreatingRoom && (
-                  <input
-                    type="text" placeholder="Código de sala (6 caracteres)"
-                    value={roomCode} onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-                    onKeyDown={handleKeyDown} maxLength={6}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 text-sm font-mono tracking-widest text-center focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
-                  />
-                )}
-              </div>
-
-              <button
-                onClick={isCreatingRoom ? handleCreateRoom : handleJoinRoom}
-                disabled={isCreatingRoom ? !canJoin : !canJoinExisting}
-                className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all duration-200 ${
-                  (isCreatingRoom ? canJoin : canJoinExisting)
-                    ? "bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg active:scale-[0.98]"
-                    : "bg-gray-800 text-gray-600 cursor-not-allowed"
-                }`}
-              >
-                {isJoining
-                  ? <span className="flex items-center justify-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Conectando...</span>
-                  : isCreatingRoom ? gameConfig.textos_ui.boton_iniciar : "Unirse a la Sala"}
-              </button>
-
-              {!selectedRoleId && playerName.trim().length >= 2 && (
-                <p className="text-xs text-yellow-500 text-center">↑ Selecciona un rol para continuar</p>
-              )}
-            </div>
-          )}
-
-          {/* Panel en sala */}
-          {localRoomState && (
-            <div className="bg-gray-900/60 border border-gray-800 rounded-2xl p-5 space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="flex-1">
-                  <p className="text-xs text-gray-500 mb-1">Código de sala</p>
-                  <div className="font-mono text-2xl font-black text-indigo-400 tracking-[0.2em]">{localRoomState.roomId}</div>
-                  <p className="text-xs text-gray-600 mt-0.5">Comparte con tu equipo</p>
-                </div>
-                <button onClick={handleToggleReady} disabled={!canToggleReady}
-                  className={`px-5 py-3 rounded-xl font-bold text-sm transition-all duration-200 ${isReady ? "bg-green-600 hover:bg-green-700 text-white" : "bg-gray-700 hover:bg-gray-600 text-white"}`}>
-                  {isReady ? "✓ Listo" : "Marcar Listo"}
-                </button>
-              </div>
-
-              <div className="space-y-1.5">
-                <div className="flex justify-between text-xs text-gray-500">
-                  <span>Jugadores listos</span>
-                  <span>{localRoomState.players.filter((p) => p.isReady).length}/{localRoomState.players.length}</span>
-                </div>
-                <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
-                  <div className="h-full bg-green-500 rounded-full transition-all duration-500"
-                    style={{ width: localRoomState.players.length ? `${(localRoomState.players.filter((p) => p.isReady).length / localRoomState.players.length) * 100}%` : "0%" }} />
-                </div>
-              </div>
-
-              {isHost && (
-                <button onClick={handleStartGame} disabled={!allPlayersReady}
-                  className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all duration-200 ${allPlayersReady ? "bg-green-600 hover:bg-green-500 text-white shadow-lg active:scale-[0.98]" : "bg-gray-800 text-gray-600 cursor-not-allowed"}`}>
-                  {allPlayersReady ? "🚀 Iniciar Partida" : `Esperando ${localRoomState.players.length < MIN_PLAYERS ? `${MIN_PLAYERS - localRoomState.players.length} jugador(es) más` : "que todos estén listos"}...`}
-                </button>
-              )}
-              {!isHost && <p className="text-xs text-gray-600 text-center">El host ({localRoomState.players[0]?.name}) iniciará la partida.</p>}
-
-              <button onClick={handleLeaveRoom} className="w-full py-2 text-xs text-gray-600 hover:text-red-400 transition-colors">
-                Abandonar sala
-              </button>
-            </div>
-          )}
-
-          {errorMsg && (
-            <div className="bg-red-900/30 border border-red-800 rounded-xl px-4 py-3 text-sm text-red-300">⚠ {errorMsg}</div>
-          )}
-
-          {/* Roles */}
-          <div className="space-y-3">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Roles disponibles</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {gameConfig.roles.map((role) => (
-                <RoleCard key={role.id} role={role}
-                  isSelected={selectedRoleId === role.id}
-                  isTaken={Boolean(takenRoles[role.id])}
-                  takenBy={takenRoles[role.id]}
-                  onClick={handleSelectRole} />
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Columna derecha */}
-        <aside className="space-y-6">
-          <div className="bg-gray-900/60 border border-gray-800 rounded-2xl p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Jugadores</h3>
-              <span className="text-xs font-mono text-gray-600">{localRoomState?.players.length || 0}/{MAX_PLAYERS}</span>
-            </div>
-            {localRoomState?.players.length ? (
-              <div className="space-y-2">
-                {localRoomState.players.map((player, idx) => (
-                  <div key={player.socketId} className="relative">
-                    <PlayerAvatar player={player} rolesMap={rolesMap} />
-                    {idx === 0 && <span className="absolute top-1 right-2 text-xs text-yellow-500">★ Host</span>}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-gray-600 text-center py-4">Crea o únete a una sala para ver los jugadores.</p>
-            )}
-            {localRoomState && Array.from({ length: MAX_PLAYERS - localRoomState.players.length }).map((_, i) => (
-              <div key={`e-${i}`} className="flex items-center gap-2 border border-dashed border-gray-800 rounded-lg px-3 py-2">
-                <div className="w-10 h-10 rounded-full border-2 border-dashed border-gray-700 flex items-center justify-center">
-                  <span className="text-gray-700 text-lg">+</span>
-                </div>
-                <p className="text-xs text-gray-700">Esperando jugador...</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="bg-gray-900/60 border border-gray-800 rounded-2xl p-4 space-y-3">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Sobre el juego</h3>
-            <p className="text-xs text-gray-400 leading-relaxed">{gameConfig._meta.descripcion}</p>
-            <div className="space-y-1.5 pt-1">
-              {[["Escenarios", gameConfig.escenarios.length], ["Componentes", gameConfig.directorio_componentes.length], ["Jugadores", `${MIN_PLAYERS}–${MAX_PLAYERS}`], ["Versión", gameConfig._meta.version]].map(([l, v]) => (
-                <div key={l} className="flex justify-between text-xs">
-                  <span className="text-gray-600">{l}</span>
-                  <span className="text-gray-300 font-mono">{v}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </aside>
+        {activeScreen === 'room' && localRoomState && (
+          <RoomScreen
+            roomState={localRoomState}
+            rolesMap={rolesMap}
+            gameConfig={gameConfig}
+            selectedRoleId={selectedRoleId}
+            onSelectRole={handleSelectRole}
+            takenRoles={takenRoles}
+            isHost={isHost}
+            isReady={isReady}
+            canToggleReady={canToggleReady}
+            onToggleReady={handleToggleReady}
+            allPlayersReady={allPlayersReady}
+            onStartGame={handleStartGame}
+            onLeave={handleLeaveRoom}
+            mySocketId={socket.id}
+            errorMsg={errorMsg}
+          />
+        )}
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-gray-800 px-6 py-3">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <p className="text-xs text-gray-700 font-mono">Architecture Chaos v{gameConfig._meta.version} · Portafolio TIC 2026</p>
-          <p className="text-xs text-gray-700">{gameConfig._meta.tema}</p>
+      <footer style={{ borderTop: `1px solid ${C.border}`, padding: '14px 24px' }}>
+        <div style={{ maxWidth: 960, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+          <p style={{ fontSize: 11, color: C.hint, fontFamily: 'ui-monospace, monospace', margin: 0 }}>Architecture Chaos v{gameConfig._meta.version} · Portafolio TIC 2026</p>
+          <p style={{ fontSize: 11, color: C.hint, margin: 0 }}>Juego hecho por <span style={{ color: C.muted }}>Renzo Mauricio Renato Chaffo Vega</span></p>
         </div>
       </footer>
     </div>
   );
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  SUBCOMPONENTES
+// ════════════════════════════════════════════════════════════════════════════
+
+function Header({ connectionStatus, textos }) {
+  const cfg = {
+    connecting: { dot: C.warning, text: "Conectando…", pulse: true },
+    connected:  { dot: C.success, text: "Conectado",    pulse: false },
+    error:      { dot: C.danger,  text: "Sin conexión", pulse: false },
+    idle:       { dot: C.hint,    text: "Desconectado", pulse: false },
+  }[connectionStatus] || { dot: C.hint, text: "—", pulse: false };
+
+  return (
+    <header style={{ borderBottom: `1px solid ${C.border}`, padding: '16px 24px' }}>
+      <div style={{ maxWidth: 960, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0, letterSpacing: '-0.02em' }}>
+            <span style={{ color: '#818CF8' }}>Architecture</span>{' '}
+            <span style={{ color: C.danger }}>Chaos</span>
+          </h1>
+          <p style={{ fontSize: 11, color: C.hint, fontFamily: 'ui-monospace, monospace', margin: '2px 0 0' }}>{textos.etiqueta_tema}</p>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span className={cfg.pulse ? 'lob-pulse-dot' : ''} style={{ width: 7, height: 7, borderRadius: '50%', background: cfg.dot }} />
+            <span style={{ fontSize: 11, fontFamily: 'ui-monospace, monospace', color: cfg.dot }}>{cfg.text}</span>
+          </div>
+          <a href="/manual" className="lob-btn" style={{ fontSize: 12, color: C.text, border: `1px solid ${C.border}`, padding: '6px 12px', borderRadius: 6, textDecoration: 'none' }}>Manual</a>
+          <a href="/auditoria" className="lob-btn" style={{ fontSize: 12, color: C.accent, border: `1px solid ${C.accent}55`, padding: '6px 12px', borderRadius: 6, textDecoration: 'none' }}>{textos.boton_auditoria} →</a>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+// ─── Pantalla 1: Choose (Crear o Unirme) ───────────────────────────────────
+function ChooseScreen({ onCreate, onJoin, gameConfig }) {
+  return (
+    <div className="lob-fadein" style={{ maxWidth: 760, margin: '0 auto' }}>
+
+      {/* Hero */}
+      <div style={{ textAlign: 'center', marginBottom: 36 }}>
+        <div style={{ fontSize: 11, color: C.muted, letterSpacing: '0.2em', fontWeight: 500, marginBottom: 10 }}>
+          BANKING ARCHITECTURE TRAINING · BIAN v14
+        </div>
+        <h2 style={{ fontSize: 34, fontWeight: 500, lineHeight: 1.15, margin: '0 0 12px', letterSpacing: '-0.01em' }}>
+          Capacita a tu equipo en<br />arquitectura bancaria
+        </h2>
+        <p style={{ fontSize: 14, color: C.muted, lineHeight: 1.6, maxWidth: 520, margin: '0 auto' }}>
+          {gameConfig.textos_ui.subtitulo_juego}
+        </p>
+      </div>
+
+      {/* Dos cards grandes */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 32 }}>
+        <button onClick={onCreate} className="lob-card" style={{
+          background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: '28px 24px',
+          textAlign: 'left', color: C.text, fontFamily: 'inherit',
+        }}>
+          <div style={{ width: 40, height: 40, background: `${C.accent}1A`, border: `1px solid ${C.accent}55`, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M8 2 V14 M2 8 H14" stroke={C.accent} strokeWidth="1.8" strokeLinecap="round" /></svg>
+          </div>
+          <div style={{ fontSize: 11, color: C.muted, letterSpacing: '0.08em', fontWeight: 500, marginBottom: 4 }}>NUEVA PARTIDA</div>
+          <div style={{ fontSize: 18, fontWeight: 500, marginBottom: 6 }}>Crear sala</div>
+          <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.5 }}>Empieza una partida nueva y comparte el código con tu equipo (hasta {MAX_PLAYERS} jugadores).</div>
+          <div style={{ marginTop: 16, fontSize: 12, color: C.accent, fontWeight: 500 }}>Crear →</div>
+        </button>
+
+        <button onClick={onJoin} className="lob-card" style={{
+          background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: '28px 24px',
+          textAlign: 'left', color: C.text, fontFamily: 'inherit',
+        }}>
+          <div style={{ width: 40, height: 40, background: `${C.success}1A`, border: `1px solid ${C.success}55`, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M3 8 H13 M9 4 L13 8 L9 12" stroke={C.success} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </div>
+          <div style={{ fontSize: 11, color: C.muted, letterSpacing: '0.08em', fontWeight: 500, marginBottom: 4 }}>TENGO UN CÓDIGO</div>
+          <div style={{ fontSize: 18, fontWeight: 500, marginBottom: 6 }}>Unirme a una sala</div>
+          <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.5 }}>Introduce el código de 6 caracteres que te compartieron para entrar a una partida existente.</div>
+          <div style={{ marginTop: 16, fontSize: 12, color: C.success, fontWeight: 500 }}>Unirme →</div>
+        </button>
+      </div>
+
+      {/* Stats del juego */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+        <StatSmall label="ROLES" value="4" />
+        <StatSmall label="ESCENARIOS" value={gameConfig.escenarios.length} />
+        <StatSmall label="COMPONENTES" value={gameConfig.directorio_componentes.length} />
+        <StatSmall label="JUGADORES" value={`${MIN_PLAYERS}–${MAX_PLAYERS}`} />
+      </div>
+
+      {/* Vista previa de roles */}
+      <div style={{ marginTop: 32 }}>
+        <div style={{ fontSize: 11, color: C.muted, letterSpacing: '0.08em', fontWeight: 500, marginBottom: 14 }}>LOS 4 ROLES DEL JUEGO</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+          {gameConfig.roles.map(role => (
+            <div key={role.id} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: '14px 12px', textAlign: 'center' }}>
+              <div style={{ marginBottom: 8 }}><Shape kind={role.icono_forma} color={role.color} size={32} /></div>
+              <div style={{ fontSize: 12, fontWeight: 500, color: role.color, lineHeight: 1.2 }}>{role.nombre}</div>
+              <div style={{ fontSize: 10, color: C.hint, fontFamily: 'ui-monospace, monospace', marginTop: 3 }}>{role.alias_juego}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+    </div>
+  );
+}
+
+// ─── Pantalla 2: Form (datos + rol) ────────────────────────────────────────
+function FormScreen({ mode, gameConfig, playerName, setPlayerName, roomCode, setRoomCode, selectedRoleId, onSelectRole, takenRoles, onKeyDown, canJoin, isJoining, onSubmit, onBack, errorMsg }) {
+  const isCreate = mode === 'create';
+  const title = isCreate ? 'Crear sala nueva' : 'Unirme a una sala';
+  const subtitle = isCreate ? 'Configura tu jugador y elige un rol. Al crear, obtendrás un código para compartir.' : 'Introduce el código que te compartieron, elige tu nombre y rol.';
+
+  return (
+    <div className="lob-fadein" style={{ maxWidth: 760, margin: '0 auto' }}>
+      <button onClick={onBack} className="lob-btn" style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 13, marginBottom: 18, padding: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+        ← Volver
+      </button>
+
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ fontSize: 11, color: isCreate ? C.accent : C.success, letterSpacing: '0.08em', fontWeight: 500, marginBottom: 6 }}>
+          {isCreate ? 'NUEVA PARTIDA' : 'TENGO UN CÓDIGO'}
+        </div>
+        <h2 style={{ fontSize: 26, fontWeight: 500, margin: '0 0 6px', letterSpacing: '-0.01em' }}>{title}</h2>
+        <p style={{ fontSize: 13, color: C.muted, margin: 0, lineHeight: 1.5 }}>{subtitle}</p>
+      </div>
+
+      {/* Datos básicos */}
+      <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: 20, marginBottom: 16 }}>
+        <div style={{ marginBottom: isCreate ? 0 : 14 }}>
+          <label style={{ display: 'block', fontSize: 11, color: C.muted, letterSpacing: '0.08em', fontWeight: 500, marginBottom: 8 }}>TU NOMBRE</label>
+          <input
+            type="text"
+            className="lob-input"
+            placeholder="Ej: María González"
+            value={playerName}
+            onChange={(e) => setPlayerName(e.target.value)}
+            onKeyDown={onKeyDown}
+            maxLength={24}
+            style={{ width: '100%', boxSizing: 'border-box', background: C.raised, border: `1px solid ${C.border}`, borderRadius: 6, padding: '11px 14px', fontSize: 14, color: C.text, outline: 'none', fontFamily: 'inherit' }}
+          />
+        </div>
+
+        {!isCreate && (
+          <div>
+            <label style={{ display: 'block', fontSize: 11, color: C.muted, letterSpacing: '0.08em', fontWeight: 500, marginBottom: 8 }}>CÓDIGO DE SALA</label>
+            <input
+              type="text"
+              className="lob-input"
+              placeholder="6 caracteres"
+              value={roomCode}
+              onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+              onKeyDown={onKeyDown}
+              maxLength={6}
+              style={{ width: '100%', boxSizing: 'border-box', background: C.raised, border: `1px solid ${C.border}`, borderRadius: 6, padding: '11px 14px', fontSize: 18, color: C.text, outline: 'none', fontFamily: 'ui-monospace, monospace', textAlign: 'center', letterSpacing: '0.3em' }}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Selector de rol */}
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 11, color: C.muted, letterSpacing: '0.08em', fontWeight: 500, marginBottom: 10 }}>ELIGE TU ROL</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+          {gameConfig.roles.map(role => (
+            <RoleCard
+              key={role.id}
+              role={role}
+              isSelected={selectedRoleId === role.id}
+              isTaken={Boolean(takenRoles[role.id])}
+              takenBy={takenRoles[role.id]}
+              onClick={onSelectRole}
+            />
+          ))}
+        </div>
+      </div>
+
+      {errorMsg && (
+        <div style={{ background: `${C.danger}15`, border: `1px solid ${C.danger}55`, borderRadius: 8, padding: '10px 14px', fontSize: 13, color: C.danger, marginBottom: 14 }}>⚠ {errorMsg}</div>
+      )}
+
+      {/* Botón principal */}
+      <button
+        onClick={onSubmit}
+        disabled={!canJoin}
+        className="lob-btn"
+        style={{
+          width: '100%',
+          background: canJoin ? (isCreate ? C.accent : C.success) : C.raised,
+          color: canJoin ? (isCreate ? C.accentDark : C.successDark) : C.hint,
+          border: `1px solid ${canJoin ? (isCreate ? C.accent : C.success) : C.borderStrong}`,
+          padding: '13px 22px', borderRadius: 8, fontSize: 14, fontWeight: 500,
+          cursor: canJoin ? 'pointer' : 'not-allowed',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+        }}
+      >
+        {isJoining ? (
+          <>
+            <span className="lob-spin" style={{ width: 14, height: 14, border: `2px solid currentColor`, borderTopColor: 'transparent', borderRadius: '50%' }} />
+            Conectando…
+          </>
+        ) : (
+          isCreate ? 'Crear sala →' : 'Unirme a la sala →'
+        )}
+      </button>
+
+      {!selectedRoleId && playerName.trim().length >= 2 && (
+        <p style={{ fontSize: 12, color: C.warning, textAlign: 'center', marginTop: 10 }}>↑ Elige un rol para continuar</p>
+      )}
+    </div>
+  );
+}
+
+// ─── Pantalla 3: Room (dentro de la sala) ──────────────────────────────────
+function RoomScreen({ roomState, rolesMap, gameConfig, selectedRoleId, onSelectRole, takenRoles, isHost, isReady, canToggleReady, onToggleReady, allPlayersReady, onStartGame, onLeave, mySocketId, errorMsg }) {
+  const totalReady = roomState.players.filter(p => p.isReady).length;
+  const progress = roomState.players.length > 0 ? (totalReady / roomState.players.length) * 100 : 0;
+
+  return (
+    <div className="lob-fadein" style={{ maxWidth: 900, margin: '0 auto' }}>
+
+      {/* Header de sala */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 14 }}>
+        <div>
+          <div style={{ fontSize: 11, color: C.muted, letterSpacing: '0.08em', fontWeight: 500, marginBottom: 4 }}>CÓDIGO DE SALA · COMPARTE CON TU EQUIPO</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ fontFamily: 'ui-monospace, monospace', fontSize: 32, color: C.accent, fontWeight: 500, letterSpacing: '0.2em' }}>{roomState.roomId}</div>
+            <button onClick={() => navigator.clipboard?.writeText(roomState.roomId)} className="lob-btn" style={{ background: C.surface, border: `1px solid ${C.border}`, color: C.text, padding: '6px 10px', borderRadius: 6, fontSize: 11, fontFamily: 'inherit' }} title="Copiar código">
+              Copiar
+            </button>
+          </div>
+        </div>
+        <button onClick={onLeave} className="lob-btn" style={{ background: 'transparent', border: `1px solid ${C.borderStrong}`, color: C.muted, padding: '8px 14px', borderRadius: 6, fontSize: 12, fontFamily: 'inherit' }}>
+          Abandonar sala
+        </button>
+      </div>
+
+      {/* Grid de slots de jugadores */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10, marginBottom: 18 }}>
+        {Array.from({ length: MAX_PLAYERS }).map((_, idx) => {
+          const player = roomState.players[idx];
+          if (player) {
+            const role = rolesMap[player.roleId];
+            const isMe = player.socketId === mySocketId;
+            const isHostSlot = idx === 0;
+            return (
+              <div key={player.socketId} style={{
+                background: C.surface,
+                border: `1px solid ${isMe ? (role?.color || C.accent) + '88' : C.border}`,
+                borderRadius: 10, padding: 14, position: 'relative',
+              }}>
+                {isHostSlot && (
+                  <span style={{ position: 'absolute', top: 8, right: 10, fontSize: 10, color: C.warning, letterSpacing: '0.08em', fontWeight: 500 }}>★ HOST</span>
+                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                  {role ? <Shape kind={role.icono_forma} color={role.color} size={36} /> : (
+                    <div style={{ width: 36, height: 36, borderRadius: '50%', background: C.raised, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <span style={{ color: C.muted, fontSize: 11 }}>?</span>
+                    </div>
+                  )}
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {player.name} {isMe && <span style={{ fontSize: 10, color: C.muted }}>(tú)</span>}
+                    </div>
+                    <div style={{ fontSize: 11, color: role?.color || C.muted, marginTop: 2 }}>{role ? role.nombre : 'Sin rol'}</div>
+                  </div>
+                </div>
+                <div style={{
+                  fontSize: 11, fontWeight: 500, padding: '4px 8px', borderRadius: 4, display: 'inline-block',
+                  background: player.isReady ? `${C.success}20` : `${C.muted}15`,
+                  color: player.isReady ? C.success : C.muted,
+                }}>
+                  {player.isReady ? '✓ Listo' : 'Esperando…'}
+                </div>
+              </div>
+            );
+          }
+          return (
+            <div key={`empty-${idx}`} style={{ background: 'transparent', border: `1px dashed ${C.border}`, borderRadius: 10, padding: 14, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 102 }}>
+              <div style={{ width: 36, height: 36, borderRadius: '50%', border: `1.5px dashed ${C.borderStrong}`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 6 }}>
+                <span style={{ color: C.hint, fontSize: 18 }}>+</span>
+              </div>
+              <div style={{ fontSize: 11, color: C.hint }}>Esperando jugador…</div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Progreso de readys */}
+      <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: 16, marginBottom: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+          <span style={{ fontSize: 12, color: C.muted, letterSpacing: '0.05em' }}>Jugadores listos</span>
+          <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: 13, color: C.text, fontWeight: 500 }}>{totalReady} / {roomState.players.length}</span>
+        </div>
+        <div style={{ height: 5, background: C.raised, borderRadius: 2, overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: `${progress}%`, background: progress === 100 ? C.success : C.accent, transition: 'width .4s ease, background .3s ease' }} />
+        </div>
+      </div>
+
+      {/* Controles */}
+      <div style={{ display: 'grid', gridTemplateColumns: isHost ? '1fr 1fr' : '1fr', gap: 10, marginBottom: 16 }}>
+        <button
+          onClick={onToggleReady}
+          disabled={!canToggleReady}
+          className="lob-btn"
+          style={{
+            background: isReady ? C.success : C.raised,
+            color: isReady ? C.successDark : C.text,
+            border: `1px solid ${isReady ? C.success : C.borderStrong}`,
+            padding: '13px 18px', borderRadius: 8, fontSize: 14, fontWeight: 500,
+            cursor: canToggleReady ? 'pointer' : 'not-allowed',
+          }}
+        >
+          {isReady ? '✓ Estás listo (click para cancelar)' : 'Marcar como listo'}
+        </button>
+
+        {isHost && (
+          <button
+            onClick={onStartGame}
+            disabled={!allPlayersReady}
+            className={allPlayersReady ? 'lob-btn lob-breath' : 'lob-btn'}
+            style={{
+              background: allPlayersReady ? C.accent : C.raised,
+              color: allPlayersReady ? C.accentDark : C.hint,
+              border: `1px solid ${allPlayersReady ? C.accent : C.borderStrong}`,
+              padding: '13px 18px', borderRadius: 8, fontSize: 14, fontWeight: 500,
+              cursor: allPlayersReady ? 'pointer' : 'not-allowed',
+            }}
+          >
+            {allPlayersReady ? 'Iniciar partida →' : (roomState.players.length < MIN_PLAYERS ? `Esperando ${MIN_PLAYERS - roomState.players.length} jugador(es) más` : 'Esperando a que todos estén listos')}
+          </button>
+        )}
+      </div>
+
+      {!isHost && (
+        <p style={{ fontSize: 12, color: C.hint, textAlign: 'center', marginBottom: 16 }}>
+          El host ({roomState.players[0]?.name}) iniciará la partida cuando todos estén listos.
+        </p>
+      )}
+
+      {/* Cambio de rol dentro de la sala */}
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 11, color: C.muted, letterSpacing: '0.08em', fontWeight: 500, marginBottom: 10 }}>TU ROL · PUEDES CAMBIARLO ANTES DE INICIAR</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+          {gameConfig.roles.map(role => (
+            <RoleCard
+              key={role.id}
+              role={role}
+              isSelected={selectedRoleId === role.id}
+              isTaken={Boolean(takenRoles[role.id])}
+              takenBy={takenRoles[role.id]}
+              onClick={onSelectRole}
+              compact
+            />
+          ))}
+        </div>
+      </div>
+
+      {errorMsg && (
+        <div style={{ background: `${C.danger}15`, border: `1px solid ${C.danger}55`, borderRadius: 8, padding: '10px 14px', fontSize: 13, color: C.danger }}>⚠ {errorMsg}</div>
+      )}
+    </div>
+  );
+}
+
+// ─── RoleCard rediseñada ───────────────────────────────────────────────────
+function RoleCard({ role, isSelected, isTaken, takenBy, onClick, compact }) {
+  const disabled = isTaken;
+  return (
+    <button
+      onClick={() => !disabled && onClick(role.id)}
+      disabled={disabled}
+      className="lob-role"
+      style={{
+        position: 'relative',
+        background: isSelected ? `${role.color}10` : C.surface,
+        border: `1px solid ${isSelected ? role.color : C.border}`,
+        borderRadius: 10,
+        padding: compact ? '12px 14px' : '14px 16px',
+        textAlign: 'left',
+        color: C.text,
+        fontFamily: 'inherit',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.45 : 1,
+        display: 'flex', flexDirection: 'column', gap: 8,
+      }}
+    >
+      {isTaken && (
+        <span style={{
+          position: 'absolute', top: 8, right: 10,
+          fontSize: 10, color: C.muted,
+          background: C.raised, padding: '2px 7px', borderRadius: 10,
+          letterSpacing: '0.03em',
+        }}>
+          {takenBy || 'Ocupado'}
+        </span>
+      )}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <Shape kind={role.icono_forma} color={role.color} size={compact ? 32 : 36} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 500, color: role.color, lineHeight: 1.2 }}>{role.nombre}</div>
+          <div style={{ fontSize: 10, color: C.hint, fontFamily: 'ui-monospace, monospace', marginTop: 2 }}>{role.alias_juego}</div>
+        </div>
+        {isSelected && (
+          <span style={{ fontSize: 11, color: role.color, fontWeight: 500 }}>✓</span>
+        )}
+      </div>
+      {!compact && (
+        <p style={{ fontSize: 12, color: C.muted, lineHeight: 1.5, margin: 0, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+          {role.descripcion}
+        </p>
+      )}
+    </button>
+  );
+}
+
+// ─── StatSmall helper ──────────────────────────────────────────────────────
+function StatSmall({ label, value }) {
+  return (
+    <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: '10px 14px', textAlign: 'center' }}>
+      <div style={{ fontFamily: 'ui-monospace, monospace', fontSize: 18, color: C.text, fontWeight: 500, lineHeight: 1 }}>{value}</div>
+      <div style={{ fontSize: 10, color: C.muted, letterSpacing: '0.08em', fontWeight: 500, marginTop: 4 }}>{label}</div>
+    </div>
+  );
+}
+
+// ─── FullScreen helper (para loading/error) ────────────────────────────────
+function FullScreen({ children }) {
+  return <div style={{ minHeight: '100vh', background: C.base, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>{children}</div>;
 }
