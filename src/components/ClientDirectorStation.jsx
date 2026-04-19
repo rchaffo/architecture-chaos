@@ -1,340 +1,259 @@
-// ClientDirectorStation.jsx — Client Director (Phase 2)
-// Architecture Chaos — Fase 2
-// Two phases: Office Investigation (60s) + Crisis Meeting
-// Requiere: React, Zustand (gameStore), Socket.io
+// src/components/ClientDirectorStation.jsx
+// Rediseño v2 · Client Director
+// Usa OfficeScene (5 oficinas SVG estilizadas, una por cliente)
+// Mantiene toda la lógica original: 3 fases, intel level, panic meter, socket emits
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import ImageBasedOffice from './ImageBasedOffice';
+import OfficeScene from './OfficeScene';
 
-// For now, embedded inline for portability
+// ============================================================================
+//  PALETA Y ANIMACIONES
+// ============================================================================
+const C = {
+  base: '#0A0E14', surface: '#14181F', raised: '#1C212B',
+  border: '#1C212B', borderStrong: '#3A414F',
+  text: '#E6E8EC', muted: '#9CA3AF', hint: '#6B7280',
+  // Client Director: indigo
+  role: '#818CF8', roleDark: '#1E1B4B',
+  // Estados
+  success: '#34D399', successDark: '#04342C',
+  danger: '#F87171', dangerDark: '#3F0A0A',
+  warning: '#FBBF24', warningDark: '#412402',
+  info: '#60A5FA',
+};
+
+const ANIM = `
+@keyframes cd-fadein { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes cd-pop { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: scale(1); } }
+@keyframes cd-slidein { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes cd-pulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.12); opacity: .75; } }
+@keyframes cd-breathe { 0%,100% { opacity: 1; } 50% { opacity: .6; } }
+@keyframes cd-shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+.cd-fadein { animation: cd-fadein .4s ease-out both; }
+.cd-pop { animation: cd-pop .3s cubic-bezier(.2,.9,.3,1.1) both; }
+.cd-slidein { animation: cd-slidein .4s ease-out both; }
+.cd-pulse { animation: cd-pulse 1.4s ease-in-out infinite; }
+.cd-breathe { animation: cd-breathe 2s ease-in-out infinite; }
+.cd-btn { transition: opacity .15s, transform .12s, background .15s, border-color .15s; cursor: pointer; }
+.cd-btn:hover:not(:disabled) { opacity: .92; }
+.cd-btn:active:not(:disabled) { transform: scale(.98); }
+.cd-btn:disabled { cursor: not-allowed; opacity: .5; }
+.cd-resp-card { transition: background .15s, border-color .15s, transform .12s; cursor: pointer; }
+.cd-resp-card:hover { background: #1C212B; border-color: #3A414F; }
+.cd-resp-card:active { transform: scale(.99); }
+`;
+
+// ============================================================================
+//  PERFILES DE CLIENTES (mismo dataset que la versión anterior, intacto)
+// ============================================================================
 const CLIENT_PROFILES = {
-  "director-agresivo": {
-    id: "director-agresivo",
-    name: "Ricardo Mendoza",
-    title: "Director de Operaciones — Banco Continental",
-    personality: "Agresivo, orientado a resultados, sin paciencia",
-    avatar: "👔",
-    officeClues: {
-      trofeos: {
-        icon: "🏆", label: "Trofeos y Placas",
-        x: 8, y: 15,
-        description: "Trofeos de 'Mejor Rendimiento' 2019-2024. Placa: '15 años de relación con el banco'.",
-        intel: { key: "loyalty", value: "15 años — lealtad alta" }
-      },
-      organigrama: {
-        icon: "📋", label: "Organigrama",
-        x: 35, y: 8,
-        description: "Reporta directamente al CEO. Nota adhesiva: 'Board meeting viernes'.",
-        intel: { key: "pressure", value: "Reporta al CEO — presión extrema" }
-      },
-      documentos: {
-        icon: "📄", label: "Documentos",
-        x: 55, y: 50,
-        description: "Informe de auditoría SOX abierto. Área señalada: Pagos Internacionales.",
-        intel: { key: "audit", value: "Auditoría SOX — Pagos Internacionales" }
-      },
-      celular: {
-        icon: "📱", label: "Celular",
-        x: 70, y: 55,
-        description: "23 llamadas perdidas en las últimas 2 horas. 8 mensajes sin leer del equipo de TI.",
-        intel: { key: "urgency", value: "23 llamadas — urgencia CRÍTICA" }
-      },
-      computador: {
-        icon: "🖥️", label: "Computador",
-        x: 80, y: 30,
-        description: "Dashboard de SWIFT con transacciones en cola. Error: 'Gateway Timeout'.",
-        intel: { key: "system", value: "SWIFT Gateway — Payment Execution" }
-      }
+  'director-agresivo': {
+    id: 'director-agresivo',
+    name: 'Ricardo Mendoza',
+    title: 'Director de Operaciones · Banco Continental',
+    personality: 'Agresivo, orientado a resultados, sin paciencia',
+    initials: 'RM',
+    accentColor: '#B8860B',
+    intel: {
+      trofeos:     { label: 'Trofeos y Placas', value: '15 años — lealtad alta', description: "Trofeos de 'Mejor Rendimiento' 2019-2024. Placa: '15 años de relación con el banco'." },
+      organigrama: { label: 'Organigrama',       value: 'Reporta al CEO — presión extrema', description: "Reporta directamente al CEO. Nota adhesiva: 'Board meeting viernes'." },
+      documentos:  { label: 'Documentos SOX',    value: 'Auditoría SOX — Pagos Internacionales', description: 'Informe de auditoría SOX abierto. Área señalada: Pagos Internacionales.' },
+      celular:     { label: 'Celular',           value: '23 llamadas — urgencia CRÍTICA', description: '23 llamadas perdidas en las últimas 2 horas. 8 mensajes sin leer del equipo de TI.' },
+      computador:  { label: 'Monitor SWIFT',     value: 'SWIFT Gateway — Payment Execution', description: "Dashboard de SWIFT con transacciones en cola. Error: 'Gateway Timeout'." },
     },
-    openingLine: "Llevamos 3 horas con los pagos internacionales caídos. Tengo al CEO encima y una auditoría SOX la próxima semana. Necesito una solución YA, no excusas.",
+    openingLine: 'Llevamos 3 horas con los pagos internacionales caídos. Tengo al CEO encima y una auditoría SOX la próxima semana. Necesito una solución YA, no excusas.',
     responses: {
       full: [
-        { text: "Señor Mendoza, entiendo la presión del board del viernes y la auditoría SOX. Ya identificamos que el Service Domain de Payment Execution tiene un timeout en el gateway SWIFT. Estamos activando el canal de contingencia — en 45 minutos tendremos trazabilidad completa para la auditoría.", correct: true, panicDelta: -25, feedback: "Perfecto. Demuestra conocimiento del perfil, aplica el Service Domain correcto (Payment Execution con Functional Pattern Transact), da timeline concreto y aborda la auditoría." },
-        { text: "Señor Mendoza, ya activamos el Service Domain de Transaction Authorization para restablecer el flujo SWIFT. En una hora tendremos un workaround completo y el RCA para su auditoría.", correct: false, panicDelta: 10, feedback: "TRAMPA: Suena técnico y seguro, pero Transaction Authorization evalúa y aprueba transacciones — no ejecuta pagos. El Service Domain correcto para ejecutar pagos es Payment Execution. Confundir autorización con ejecución puede llevar a soluciones incorrectas." },
-        { text: "Estamos trabajando en ello. El equipo de TI está investigando y le avisaremos cuando tengamos algo concreto. Estas cosas toman su tiempo.", correct: false, panicDelta: 20, feedback: "Demasiado vago. Este perfil tiene al CEO encima y una auditoría SOX — necesita respuestas concretas con Service Domains identificados y timeline específico, no frases genéricas." },
-        { text: "Hemos detectado un fallo en el módulo de pagos. Nuestro equipo necesita entre 24 y 48 horas para hacer un diagnóstico completo y proponer una solución definitiva.", correct: false, panicDelta: 30, feedback: "El timeline de 48 horas es inaceptable. Con 15 años de relación, auditoría SOX inminente y el CEO presionando, necesita resolución en horas, no días. Además no usa ninguna terminología BIAN." }
+        { text: "Señor Mendoza, entiendo la presión del board del viernes y la auditoría SOX. Ya identificamos que el Service Domain de Payment Execution tiene un timeout en el gateway SWIFT. Estamos activando el canal de contingencia — en 45 minutos tendremos trazabilidad completa para la auditoría.", correct: true, panicDelta: -25, feedback: 'Perfecto. Demuestra conocimiento del perfil, aplica el Service Domain correcto (Payment Execution con Functional Pattern Transact), da timeline concreto y aborda la auditoría.' },
+        { text: 'Señor Mendoza, ya activamos el Service Domain de Transaction Authorization para restablecer el flujo SWIFT. En una hora tendremos un workaround completo y el RCA para su auditoría.', correct: false, panicDelta: 10, feedback: 'TRAMPA: Suena técnico y seguro, pero Transaction Authorization evalúa y aprueba transacciones — no ejecuta pagos. El Service Domain correcto para ejecutar pagos es Payment Execution. Confundir autorización con ejecución puede llevar a soluciones incorrectas.' },
+        { text: 'Estamos trabajando en ello. El equipo de TI está investigando y le avisaremos cuando tengamos algo concreto. Estas cosas toman su tiempo.', correct: false, panicDelta: 20, feedback: 'Demasiado vago. Este perfil tiene al CEO encima y una auditoría SOX — necesita respuestas concretas con Service Domains identificados y timeline específico, no frases genéricas.' },
+        { text: 'Hemos detectado un fallo en el módulo de pagos. Nuestro equipo necesita entre 24 y 48 horas para hacer un diagnóstico completo y proponer una solución definitiva.', correct: false, panicDelta: 30, feedback: 'El timeline de 48 horas es inaceptable. Con 15 años de relación, auditoría SOX inminente y el CEO presionando, necesita resolución en horas, no días.' },
       ],
       partial: [
-        { text: "Señor Mendoza, entendemos la urgencia de los pagos internacionales. Ya estamos aislando el problema en el flujo de Payment Execution. Necesito 10 minutos para confirmar si el Functional Pattern Transact está bloqueado a nivel de gateway o de core, y le doy un timeline preciso.", correct: true, panicDelta: -10, feedback: "Bueno. Reconoce la urgencia, identifica el Service Domain probable, pide un tiempo corto y razonable para confirmar antes de comprometerse." },
-        { text: "Señor Mendoza, vamos a levantar inmediatamente un incidente P1 y convocar a todos los equipos involucrados a un war room para resolver esto lo antes posible.", correct: false, panicDelta: 5, feedback: "TRAMPA: Suena decidido y urgente, pero es pura gestión de incidentes sin diagnóstico técnico. No identifica el Service Domain afectado ni ofrece un camino de resolución concreto. El cliente quiere soluciones, no procesos." },
-        { text: "Vamos a revisar qué está pasando con el sistema de pagos. Le pido paciencia mientras el equipo investiga la causa raíz del problema.", correct: false, panicDelta: 15, feedback: "Pedir paciencia a un Director de Operaciones con el CEO encima es contraproducente. No demuestra ningún conocimiento previo del problema." },
-        { text: "Entiendo su preocupación. Déjeme coordinar con nuestro departamento de infraestructura y le envío un email con la actualización del estado en las próximas horas.", correct: false, panicDelta: 20, feedback: "Email y 'próximas horas' son incompatibles con un perfil que lleva 23 llamadas perdidas. Este cliente necesita resolución inmediata, cara a cara." }
+        { text: 'Señor Mendoza, entendemos la urgencia de los pagos internacionales. Ya estamos aislando el problema en el flujo de Payment Execution. Necesito 10 minutos para confirmar si el Functional Pattern Transact está bloqueado a nivel de gateway o de core, y le doy un timeline preciso.', correct: true, panicDelta: -10, feedback: 'Bueno. Reconoce la urgencia, identifica el Service Domain probable, pide un tiempo corto y razonable para confirmar antes de comprometerse.' },
+        { text: 'Señor Mendoza, vamos a levantar inmediatamente un incidente P1 y convocar a todos los equipos involucrados a un war room para resolver esto lo antes posible.', correct: false, panicDelta: 5, feedback: 'TRAMPA: Suena decidido y urgente, pero es pura gestión de incidentes sin diagnóstico técnico. No identifica el Service Domain afectado ni ofrece un camino de resolución concreto.' },
+        { text: 'Vamos a revisar qué está pasando con el sistema de pagos. Le pido paciencia mientras el equipo investiga la causa raíz del problema.', correct: false, panicDelta: 15, feedback: 'Pedir paciencia a un Director de Operaciones con el CEO encima es contraproducente. No demuestra ningún conocimiento previo del problema.' },
+        { text: 'Entiendo su preocupación. Déjeme coordinar con nuestro departamento de infraestructura y le envío un email con la actualización del estado en las próximas horas.', correct: false, panicDelta: 20, feedback: "Email y 'próximas horas' son incompatibles con un perfil que lleva 23 llamadas perdidas. Este cliente necesita resolución inmediata, cara a cara." },
       ],
       none: [
-        { text: "Entiendo que es un incidente crítico. Necesito que me confirme: ¿el problema es en la ejecución de las transacciones de pago o en la autorización de las mismas? Con eso puedo activar al equipo correcto de inmediato.", correct: true, panicDelta: 5, feedback: "Sin intel previo, esta pregunta demuestra conocimiento de la diferencia entre Payment Execution y Transaction Authorization — conceptos BIAN clave. Permite dirigir la solución rápido." },
-        { text: "Señor Mendoza, dígame exactamente qué Service Domain está fallando y mi equipo lo resuelve en la próxima hora.", correct: false, panicDelta: 10, feedback: "TRAMPA: Suena proactivo, pero pedirle al cliente que identifique el Service Domain es tu trabajo, no el de él. Demuestra que llegaste sin preparación y no entiendes la arquitectura." },
-        { text: "Cuénteme los detalles del problema. ¿Desde cuándo ocurre y qué áreas están afectadas?", correct: false, panicDelta: 15, feedback: "Preguntas genéricas de help desk. Un cliente con 15 años de relación espera que ya conozcas su infraestructura." },
-        { text: "Buenos días, soy su nuevo punto de contacto. ¿En qué puedo ayudarle hoy?", correct: false, panicDelta: 25, feedback: "Totalmente desconectado del contexto de crisis. No muestra ninguna conciencia de la urgencia." }
-      ]
-    }
+        { text: 'Entiendo que es un incidente crítico. Necesito que me confirme: ¿el problema es en la ejecución de las transacciones de pago o en la autorización de las mismas? Con eso puedo activar al equipo correcto de inmediato.', correct: true, panicDelta: 5, feedback: 'Sin intel previo, esta pregunta demuestra conocimiento de la diferencia entre Payment Execution y Transaction Authorization — conceptos BIAN clave.' },
+        { text: 'Señor Mendoza, dígame exactamente qué Service Domain está fallando y mi equipo lo resuelve en la próxima hora.', correct: false, panicDelta: 10, feedback: 'TRAMPA: Pedirle al cliente que identifique el Service Domain es tu trabajo, no el de él. Demuestra que llegaste sin preparación.' },
+        { text: 'Cuénteme los detalles del problema. ¿Desde cuándo ocurre y qué áreas están afectadas?', correct: false, panicDelta: 15, feedback: 'Preguntas genéricas de help desk. Un cliente con 15 años de relación espera que ya conozcas su infraestructura.' },
+        { text: 'Buenos días, soy su nuevo punto de contacto. ¿En qué puedo ayudarle hoy?', correct: false, panicDelta: 25, feedback: 'Totalmente desconectado del contexto de crisis. No muestra ninguna conciencia de la urgencia.' },
+      ],
+    },
   },
-  "directora-analitica": {
-    id: "directora-analitica",
-    name: "Carmen Herrera",
-    title: "Gerente de Riesgos — Banco Nacional",
-    personality: "Analítica, metódica, necesita datos",
-    avatar: "👩‍💼",
-    officeClues: {
-      trofeos: {
-        icon: "🏆", label: "Certificaciones",
-        x: 8, y: 15,
-        description: "Certificados ISO 27001, ISO 31000. Placa: '8 años como cliente preferente'.",
-        intel: { key: "loyalty", value: "8 años — orientada a estándares" }
-      },
-      organigrama: {
-        icon: "📋", label: "Organigrama",
-        x: 35, y: 8,
-        description: "Reporta al Chief Risk Officer. Su área tiene 45 personas.",
-        intel: { key: "pressure", value: "Reporta al CRO — necesita métricas" }
-      },
-      documentos: {
-        icon: "📄", label: "Documentos",
-        x: 55, y: 50,
-        description: "Matriz de Riesgo Operacional Q4. Resaltado: scoring de disponibilidad del core.",
-        intel: { key: "audit", value: "Riesgo Operacional — Disponibilidad Core" }
-      },
-      celular: {
-        icon: "📱", label: "Celular",
-        x: 70, y: 55,
-        description: "5 llamadas. Mensaje: 'Carmen, necesito el RCA antes del jueves'.",
-        intel: { key: "urgency", value: "Necesita RCA — deadline jueves" }
-      },
-      computador: {
-        icon: "🖥️", label: "Computador",
-        x: 80, y: 30,
-        description: "Grafana con latencia del core: 12,000ms. Alertas en rojo.",
-        intel: { key: "system", value: "Core Bancario — System Administration" }
-      }
+  'directora-analitica': {
+    id: 'directora-analitica',
+    name: 'Carmen Herrera',
+    title: 'Gerente de Riesgos · Banco Nacional',
+    personality: 'Analítica, metódica, necesita datos',
+    initials: 'CH',
+    accentColor: '#60A5FA',
+    intel: {
+      trofeos:     { label: 'Certificaciones',  value: '8 años — orientada a estándares', description: "Certificados ISO 27001, ISO 31000. Placa: '8 años como cliente preferente'." },
+      organigrama: { label: 'Organigrama',       value: 'Reporta al CRO — necesita métricas', description: 'Reporta al Chief Risk Officer. Su área tiene 45 personas.' },
+      documentos:  { label: 'Matriz de Riesgo',  value: 'Riesgo Operacional — Disponibilidad Core', description: 'Matriz de Riesgo Operacional Q4. Resaltado: scoring de disponibilidad del core.' },
+      celular:     { label: 'Celular',           value: 'Necesita RCA — deadline jueves', description: "5 llamadas. Mensaje: 'Carmen, necesito el RCA antes del jueves'." },
+      computador:  { label: 'Grafana',           value: 'Core Bancario — System Administration', description: 'Grafana con latencia del core: 12,000ms. Alertas en rojo.' },
     },
-    openingLine: "La latencia del core lleva 6 horas por encima de los 12 segundos. Necesito el Root Cause Analysis con datos concretos. ¿Tienen métricas o estamos adivinando?",
+    openingLine: 'La latencia del core lleva 6 horas por encima de los 12 segundos. Necesito el Root Cause Analysis con datos concretos. ¿Tienen métricas o estamos adivinando?',
     responses: {
       full: [
-        { text: "Doctora Herrera, tenemos las métricas de Grafana identificadas. El Service Domain de System Administration muestra degradación en el Functional Pattern Operate — la contención está en el pool de conexiones del core. Le preparo el RCA formal con 3 puntos: causa raíz, mitigación inmediata y plan correctivo alineado con su deadline del jueves.", correct: true, panicDelta: -25, feedback: "Excelente. Habla en datos, aplica System Administration con Functional Pattern Operate correctamente, ofrece RCA estructurado y respeta el deadline del CRO." },
-        { text: "Doctora Herrera, el Service Domain de Current Account está generando la latencia por un problema en su Behavior Qualifier de transacciones. Estamos reconfigurando el Control Record para normalizar los tiempos de respuesta.", correct: false, panicDelta: 10, feedback: "TRAMPA: Usa terminología BIAN real (Behavior Qualifier, Control Record) pero el diagnóstico es incorrecto. Current Account gestiona cuentas, no la infraestructura del core. La latencia sistémica es responsabilidad de System Administration (Operate), no de un Service Domain de negocio." },
-        { text: "No se preocupe, ya estamos resolviendo el tema de la latencia. Todo estará bien pronto, confíe en nuestro equipo.", correct: false, panicDelta: 25, feedback: "'No se preocupe' es la peor respuesta para una Gerente de Riesgos con certificación ISO 31000 que necesita datos cuantificados, no confianza ciega." },
-        { text: "Hemos reiniciado los servidores y la latencia bajó temporalmente a 3 segundos. Seguimos monitoreando la situación para ver si se estabiliza.", correct: false, panicDelta: 15, feedback: "Reiniciar sin RCA es un parche. Este perfil necesita la causa raíz documentada. Un reinicio que 'bajó temporalmente' confirma que el problema va a regresar y no tienes diagnóstico." }
+        { text: 'Doctora Herrera, tenemos las métricas de Grafana identificadas. El Service Domain de System Administration muestra degradación en el Functional Pattern Operate — la contención está en el pool de conexiones del core. Le preparo el RCA formal con 3 puntos: causa raíz, mitigación inmediata y plan correctivo alineado con su deadline del jueves.', correct: true, panicDelta: -25, feedback: 'Excelente. Habla en datos, aplica System Administration con Functional Pattern Operate correctamente, ofrece RCA estructurado y respeta el deadline del CRO.' },
+        { text: 'Doctora Herrera, el Service Domain de Current Account está generando la latencia por un problema en su Behavior Qualifier de transacciones. Estamos reconfigurando el Control Record para normalizar los tiempos de respuesta.', correct: false, panicDelta: 10, feedback: 'TRAMPA: Usa terminología BIAN real (Behavior Qualifier, Control Record) pero el diagnóstico es incorrecto. Current Account gestiona cuentas, no infraestructura. La latencia sistémica es de System Administration (Operate).' },
+        { text: 'No se preocupe, ya estamos resolviendo el tema de la latencia. Todo estará bien pronto, confíe en nuestro equipo.', correct: false, panicDelta: 25, feedback: "'No se preocupe' es la peor respuesta para una Gerente de Riesgos con certificación ISO 31000 que necesita datos cuantificados, no confianza ciega." },
+        { text: 'Hemos reiniciado los servidores y la latencia bajó temporalmente a 3 segundos. Seguimos monitoreando la situación para ver si se estabiliza.', correct: false, panicDelta: 15, feedback: "Reiniciar sin RCA es un parche. Un reinicio que 'bajó temporalmente' confirma que el problema va a regresar y no tienes diagnóstico." },
       ],
       partial: [
-        { text: "Doctora Herrera, hemos identificado anomalías en el patrón Operate del core bancario. Estamos correlacionando las métricas de latencia con los logs del pool de conexiones para construir el RCA. ¿Puede compartirnos los umbrales definidos en su matriz de riesgo operacional para alinear el análisis?", correct: true, panicDelta: -10, feedback: "Bien. Muestra proceso analítico, referencia el Functional Pattern correcto (Operate), y pide información que demuestra que entiende su framework de riesgos." },
-        { text: "Doctora Herrera, ya activamos el Service Domain de Financial Transaction Analysis para detectar el patrón de degradación. Le tendremos los resultados mañana temprano.", correct: false, panicDelta: 5, feedback: "TRAMPA: Financial Transaction Analysis analiza patrones en transacciones financieras (fraude, anomalías de negocio), no latencia de infraestructura. El SD correcto para infraestructura es System Administration. Además, 'mañana' no respeta su deadline del jueves." },
-        { text: "Estamos investigando la causa de la latencia. Le enviaremos un reporte cuando lo tengamos completo.", correct: false, panicDelta: 10, feedback: "Demasiado pasivo y sin timeline. Una Gerente de Riesgos con deadline del jueves no acepta 'cuando lo tengamos'." },
-        { text: "La latencia probablemente se debe a un pico de transacciones. Recomendamos esperar a que baje la carga y reevaluar mañana.", correct: false, panicDelta: 20, feedback: "Especular sin datos frente a una analítica es suicidio profesional. Ella tiene Grafana abierto y sabe que la carga no es el problema." }
+        { text: 'Doctora Herrera, hemos identificado anomalías en el patrón Operate del core bancario. Estamos correlacionando las métricas de latencia con los logs del pool de conexiones para construir el RCA. ¿Puede compartirnos los umbrales definidos en su matriz de riesgo operacional para alinear el análisis?', correct: true, panicDelta: -10, feedback: 'Bien. Muestra proceso analítico, referencia el Functional Pattern correcto (Operate), y pide información que demuestra que entiende su framework de riesgos.' },
+        { text: 'Doctora Herrera, ya activamos el Service Domain de Financial Transaction Analysis para detectar el patrón de degradación. Le tendremos los resultados mañana temprano.', correct: false, panicDelta: 5, feedback: "TRAMPA: Financial Transaction Analysis analiza patrones de transacciones (fraude, anomalías de negocio), no latencia de infraestructura. Además, 'mañana' no respeta su deadline del jueves." },
+        { text: 'Estamos investigando la causa de la latencia. Le enviaremos un reporte cuando lo tengamos completo.', correct: false, panicDelta: 10, feedback: "Demasiado pasivo y sin timeline. Una Gerente de Riesgos con deadline del jueves no acepta 'cuando lo tengamos'." },
+        { text: 'La latencia probablemente se debe a un pico de transacciones. Recomendamos esperar a que baje la carga y reevaluar mañana.', correct: false, panicDelta: 20, feedback: 'Especular sin datos frente a una analítica es suicidio profesional. Ella tiene Grafana abierto y sabe que la carga no es el problema.' },
       ],
       none: [
-        { text: "Necesito entender el alcance del problema. ¿Puede mostrarme los dashboards de monitoreo y los SLAs comprometidos? Con esos datos puedo determinar si la degradación viene del Functional Pattern Operate del core o de un Service Domain específico.", correct: true, panicDelta: 5, feedback: "Correcto sin información previa. Pide datos técnicos como ella espera y demuestra conocimiento de la diferencia entre problemas de infraestructura (Operate) y de negocio." },
-        { text: "Doctora Herrera, ¿cuál es el Service Domain que está presentando el problema? Así asigno al equipo correcto de inmediato.", correct: false, panicDelta: 10, feedback: "TRAMPA: Suena proactivo, pero una Gerente de Riesgos espera que TÚ diagnostiques qué Service Domain falla. Ella reporta métricas, tú identificas la causa." },
-        { text: "Déjeme revisar qué está pasando con el core y le llamo en una hora con los resultados.", correct: false, panicDelta: 15, feedback: "Inaceptable. Ella tiene los datos en Grafana frente a ella y espera que tú llegues preparado para analizar juntos, no que te vayas." },
-        { text: "Entiendo la preocupación. Voy a escalar este caso a nuestro nivel más alto de soporte para que lo atiendan con prioridad.", correct: false, panicDelta: 20, feedback: "Escalar suena bien pero es evasivo. Ella quiere RCA, no cadenas de escalamiento. Demuestra que no puedes resolver el problema tú mismo." }
-      ]
-    }
+        { text: 'Necesito entender el alcance del problema. ¿Puede mostrarme los dashboards de monitoreo y los SLAs comprometidos? Con esos datos puedo determinar si la degradación viene del Functional Pattern Operate del core o de un Service Domain específico.', correct: true, panicDelta: 5, feedback: 'Correcto sin información previa. Pide datos técnicos como ella espera y demuestra conocimiento de la diferencia entre problemas de infraestructura (Operate) y de negocio.' },
+        { text: 'Doctora Herrera, ¿cuál es el Service Domain que está presentando el problema? Así asigno al equipo correcto de inmediato.', correct: false, panicDelta: 10, feedback: 'TRAMPA: Suena proactivo, pero una Gerente de Riesgos espera que TÚ diagnostiques qué Service Domain falla. Ella reporta métricas, tú identificas la causa.' },
+        { text: 'Déjeme revisar qué está pasando con el core y le llamo en una hora con los resultados.', correct: false, panicDelta: 15, feedback: 'Inaceptable. Ella tiene los datos en Grafana frente a ella y espera que tú llegues preparado para analizar juntos, no que te vayas.' },
+        { text: 'Entiendo la preocupación. Voy a escalar este caso a nuestro nivel más alto de soporte para que lo atiendan con prioridad.', correct: false, panicDelta: 20, feedback: 'Escalar suena bien pero es evasivo. Ella quiere RCA, no cadenas de escalamiento. Demuestra que no puedes resolver el problema tú mismo.' },
+      ],
+    },
   },
-  "gerente-politico": {
-    id: "gerente-politico",
-    name: "Fernando Castillo",
-    title: "Subgerente General — Cooperativa Financiera del Sur",
-    personality: "Político, diplomático, preocupado por imagen",
-    avatar: "🤵",
-    officeClues: {
-      trofeos: {
-        icon: "🏆", label: "Fotos y Premios",
-        x: 8, y: 15,
-        description: "Fotos con políticos y empresarios. Premio 'Cooperativa del Año 2022'.",
-        intel: { key: "loyalty", value: "4 años — perfil público" }
-      },
-      organigrama: {
-        icon: "📋", label: "Organigrama",
-        x: 35, y: 8,
-        description: "Directorio de 9 personas. Post-it: 'Asamblea de socios en 15 días'.",
-        intel: { key: "pressure", value: "Directorio 9 miembros — asamblea en 15 días" }
-      },
-      documentos: {
-        icon: "📄", label: "Carta de Reclamo",
-        x: 55, y: 50,
-        description: "Reclamo de socio mayoritario sobre la app móvil: 'experiencia inaceptable'.",
-        intel: { key: "audit", value: "Reclamo socio — App Móvil" }
-      },
-      celular: {
-        icon: "📱", label: "WhatsApp",
-        x: 70, y: 55,
-        description: "WhatsApp del presidente del directorio: 'Fernando, resuelve esto antes de la asamblea'.",
-        intel: { key: "urgency", value: "Presidente presiona — deadline político" }
-      },
-      computador: {
-        icon: "🖥️", label: "App Móvil",
-        x: 80, y: 30,
-        description: "App móvil con error 500 en transferencias. Review de 1 estrella visible.",
-        intel: { key: "system", value: "App Móvil — Channel Activity Management" }
-      }
+  'gerente-politico': {
+    id: 'gerente-politico',
+    name: 'Fernando Castillo',
+    title: 'Subgerente General · Cooperativa Financiera del Sur',
+    personality: 'Político, diplomático, preocupado por imagen',
+    initials: 'FC',
+    accentColor: '#7C2D3A',
+    intel: {
+      trofeos:     { label: 'Pared de fotos',    value: '4 años — perfil público',           description: "Fotos con políticos y empresarios. Premio 'Cooperativa del Año 2022'." },
+      organigrama: { label: 'Directorio',         value: 'Directorio 9 miembros — asamblea en 15 días', description: "Directorio de 9 personas. Post-it: 'Asamblea de socios en 15 días'." },
+      documentos:  { label: 'Carta de reclamo',   value: 'Reclamo socio — App Móvil',         description: "Reclamo de socio mayoritario sobre la app móvil: 'experiencia inaceptable'." },
+      celular:     { label: 'WhatsApp',           value: 'Presidente presiona — deadline político', description: "WhatsApp del presidente del directorio: 'Fernando, resuelve esto antes de la asamblea'." },
+      computador:  { label: 'App Móvil',          value: 'App Móvil — Channel Activity Management', description: 'App móvil con error 500 en transferencias. Review de 1 estrella visible.' },
     },
-    openingLine: "Los socios están furiosos con la app. Tengo una asamblea en 15 días y el presidente del directorio me está presionando. Necesito algo que yo pueda presentar como avance.",
+    openingLine: 'Los socios están furiosos con la app. Tengo una asamblea en 15 días y el presidente del directorio me está presionando. Necesito algo que yo pueda presentar como avance.',
     responses: {
       full: [
-        { text: "Don Fernando, entiendo la presión de la asamblea. Le propongo esto: corregimos el error del Channel Activity Management con Functional Pattern Fulfill esta semana, y le preparamos un informe ejecutivo con roadmap visual que muestre el plan de mejora de la app. Así usted presenta avance concreto a los socios con un plan creíble.", correct: true, panicDelta: -25, feedback: "Perfecto. Entiende que necesita un 'entregable político' (informe con roadmap) además de la solución técnica. Identifica Channel Activity Management como el SD correcto con Fulfill." },
-        { text: "Don Fernando, el problema de la app es que el Service Domain de Customer Offer no está procesando correctamente las solicitudes. Vamos a reconfigurar el Behavior Qualifier de ofertas para que las transferencias vuelvan a funcionar.", correct: false, panicDelta: 10, feedback: "TRAMPA: Customer Offer orquesta ofertas comerciales al cliente, no gestiona canales digitales. Las transferencias en la app dependen de Channel Activity Management (canales) y Payment Execution (pagos). Mezclar Service Domains genera soluciones que no resuelven el problema." },
-        { text: "El error 500 en la app es un bug del backend en el endpoint de transferencias. Lo corregiremos en el próximo sprint de desarrollo, probablemente en 3 semanas.", correct: false, panicDelta: 15, feedback: "Demasiado técnico para un perfil político y el timeline se pasa de la asamblea. No le da el 'entregable' que necesita para el directorio." },
-        { text: "Don Fernando, con todo respeto, deberían haber actualizado la app cuando se lo recomendamos hace 6 meses. El problema actual es consecuencia de no seguir nuestras recomendaciones.", correct: false, panicDelta: 30, feedback: "Culpar al cliente es la peor estrategia posible con un perfil político que tiene 9 directores observándolo. Le das munición a sus detractores en el directorio." }
+        { text: 'Don Fernando, entiendo la presión de la asamblea. Le propongo esto: corregimos el error del Channel Activity Management con Functional Pattern Fulfill esta semana, y le preparamos un informe ejecutivo con roadmap visual que muestre el plan de mejora de la app. Así usted presenta avance concreto a los socios con un plan creíble.', correct: true, panicDelta: -25, feedback: "Perfecto. Entiende que necesita un 'entregable político' (informe con roadmap) además de la solución técnica. Identifica Channel Activity Management como el SD correcto con Fulfill." },
+        { text: 'Don Fernando, el problema de la app es que el Service Domain de Customer Offer no está procesando correctamente las solicitudes. Vamos a reconfigurar el Behavior Qualifier de ofertas para que las transferencias vuelvan a funcionar.', correct: false, panicDelta: 10, feedback: 'TRAMPA: Customer Offer orquesta ofertas comerciales al cliente, no gestiona canales digitales. Las transferencias dependen de Channel Activity Management y Payment Execution.' },
+        { text: 'El error 500 en la app es un bug del backend en el endpoint de transferencias. Lo corregiremos en el próximo sprint de desarrollo, probablemente en 3 semanas.', correct: false, panicDelta: 15, feedback: "Demasiado técnico para un perfil político y el timeline se pasa de la asamblea. No le da el 'entregable' que necesita para el directorio." },
+        { text: 'Don Fernando, con todo respeto, deberían haber actualizado la app cuando se lo recomendamos hace 6 meses. El problema actual es consecuencia de no seguir nuestras recomendaciones.', correct: false, panicDelta: 30, feedback: 'Culpar al cliente es la peor estrategia posible con un perfil político que tiene 9 directores observándolo.' },
       ],
       partial: [
-        { text: "Don Fernando, ya estamos al tanto del problema con la app móvil. Le propongo una reunión de 30 minutos para definir qué necesita presentar en la asamblea — alineamos la solución técnica del canal digital con ese timeline político y le preparamos material ejecutivo.", correct: true, panicDelta: -10, feedback: "Bien. Se enfoca en lo que importa al cliente (la narrativa para el directorio) y ofrece ayuda concreta con el material de presentación." },
-        { text: "Don Fernando, vamos a priorizar su caso. Activaremos el Service Domain de Customer Relationship Management para gestionar la situación con los socios mientras resolvemos el problema técnico.", correct: false, panicDelta: 5, feedback: "TRAMPA: Suena empático y usa BIAN, pero CRM gestiona la relación general con clientes, no resuelve errores de aplicación. El problema real está en Channel Activity Management. Además, 'gestionar la situación con los socios' no es tu responsabilidad." },
-        { text: "Vamos a revisar el problema técnico de la app y le damos un diagnóstico lo antes posible.", correct: false, panicDelta: 10, feedback: "No aborda su preocupación real: la asamblea y el directorio. Un diagnóstico técnico no es lo que necesita presentar." },
-        { text: "Le recomiendo que en la asamblea explique que estos problemas son normales en transformación digital y que el equipo está trabajando en ello.", correct: false, panicDelta: 20, feedback: "Decirle qué presentar a su directorio sin resolver el problema es condescendiente. Necesita hechos, no excusas." }
+        { text: 'Don Fernando, ya estamos al tanto del problema con la app móvil. Le propongo una reunión de 30 minutos para definir qué necesita presentar en la asamblea — alineamos la solución técnica del canal digital con ese timeline político y le preparamos material ejecutivo.', correct: true, panicDelta: -10, feedback: 'Bien. Se enfoca en lo que importa al cliente (la narrativa para el directorio) y ofrece ayuda concreta con el material de presentación.' },
+        { text: 'Don Fernando, vamos a priorizar su caso. Activaremos el Service Domain de Customer Relationship Management para gestionar la situación con los socios mientras resolvemos el problema técnico.', correct: false, panicDelta: 5, feedback: 'TRAMPA: CRM gestiona la relación general con clientes, no resuelve errores de aplicación. El problema está en Channel Activity Management.' },
+        { text: 'Vamos a revisar el problema técnico de la app y le damos un diagnóstico lo antes posible.', correct: false, panicDelta: 10, feedback: 'No aborda su preocupación real: la asamblea y el directorio.' },
+        { text: 'Le recomiendo que en la asamblea explique que estos problemas son normales en transformación digital y que el equipo está trabajando en ello.', correct: false, panicDelta: 20, feedback: 'Decirle qué presentar a su directorio sin resolver el problema es condescendiente.' },
       ],
       none: [
-        { text: "Don Fernando, cuénteme más sobre la situación. ¿Qué es lo más importante: resolver el problema técnico de la app o tener material que presentar en la asamblea? Quiero asegurarme de que atacamos lo que usted más necesita primero.", correct: true, panicDelta: 5, feedback: "Sin información previa, esta pregunta abierta le permite al cliente revelar su prioridad real (que probablemente es la asamblea, no el bug)." },
-        { text: "Don Fernando, ¿puede darme acceso al log de errores de la app? Necesito ver el stack trace para diagnosticar el problema técnico.", correct: false, panicDelta: 15, feedback: "TRAMPA: Técnicamente correcto pero totalmente desalineado con el perfil. Un Subgerente General de cooperativa no tiene stack traces — necesita soluciones de negocio, no depuración técnica." },
-        { text: "Necesitamos abrir un ticket formal con todos los detalles del incidente para poder asignar recursos.", correct: false, panicDelta: 20, feedback: "Pedir burocracia a un cliente en crisis política demuestra total desconexión. El presidente del directorio lo está presionando y tú pides un formulario." },
-        { text: "Entiendo. ¿Cuántos usuarios están afectados y desde cuándo está ocurriendo el problema?", correct: false, panicDelta: 10, feedback: "Preguntas operativas válidas pero no conectan con su urgencia real. Él no se preocupa por métricas — se preocupa por su puesto en la asamblea." }
-      ]
-    }
+        { text: 'Don Fernando, cuénteme más sobre la situación. ¿Qué es lo más importante: resolver el problema técnico de la app o tener material que presentar en la asamblea? Quiero asegurarme de que atacamos lo que usted más necesita primero.', correct: true, panicDelta: 5, feedback: 'Sin información previa, esta pregunta abierta le permite al cliente revelar su prioridad real (que probablemente es la asamblea, no el bug).' },
+        { text: 'Don Fernando, ¿puede darme acceso al log de errores de la app? Necesito ver el stack trace para diagnosticar el problema técnico.', correct: false, panicDelta: 15, feedback: 'TRAMPA: Técnicamente correcto pero totalmente desalineado con el perfil. Un Subgerente General de cooperativa no tiene stack traces.' },
+        { text: 'Necesitamos abrir un ticket formal con todos los detalles del incidente para poder asignar recursos.', correct: false, panicDelta: 20, feedback: 'Pedir burocracia a un cliente en crisis política demuestra total desconexión.' },
+        { text: 'Entiendo. ¿Cuántos usuarios están afectados y desde cuándo está ocurriendo el problema?', correct: false, panicDelta: 10, feedback: 'Preguntas operativas válidas pero no conectan con su urgencia real. Él se preocupa por su puesto en la asamblea.' },
+      ],
+    },
   },
-  "cto-tecnico": {
-    id: "cto-tecnico",
-    name: "Alejandra Vega",
-    title: "CTO — Fintech Rápida",
-    personality: "Técnica, directa, habla en código",
-    avatar: "👩‍💻",
-    officeClues: {
-      trofeos: {
-        icon: "🏆", label: "Hackathon Trophies",
-        x: 8, y: 15,
-        description: "Hackathon trophies y certificaciones AWS/GCP. Sticker: 'Move fast and break things'.",
-        intel: { key: "loyalty", value: "2 años — evalúa alternativas" }
-      },
-      organigrama: {
-        icon: "📋", label: "Org Flat",
-        x: 35, y: 8,
-        description: "Organigrama flat — 3 niveles. Reporta a los founders.",
-        intel: { key: "pressure", value: "Startup — velocidad es la métrica" }
-      },
-      documentos: {
-        icon: "📄", label: "Evaluación Proveedores",
-        x: 55, y: 50,
-        description: "Documento: 'Evaluación de proveedores API - Q1'. Tu empresa está en amarillo.",
-        intel: { key: "audit", value: "Evaluando competidores — riesgo de churn" }
-      },
-      celular: {
-        icon: "📱", label: "Slack",
-        x: 70, y: 55,
-        description: "Slack con canal #infra: 200 mensajes no leídos. Status: 🔥.",
-        intel: { key: "urgency", value: "Slack > Teléfono — canal digital" }
-      },
-      computador: {
-        icon: "🖥️", label: "Terminal",
-        x: 80, y: 30,
-        description: "curl commands fallando. Error: 'API Rate Limit Exceeded — Product Directory'.",
-        intel: { key: "system", value: "API Gateway — Product Directory" }
-      }
+  'cto-tecnico': {
+    id: 'cto-tecnico',
+    name: 'Alejandra Vega',
+    title: 'CTO · Fintech Rápida',
+    personality: 'Técnica, directa, habla en código',
+    initials: 'AV',
+    accentColor: '#A855F7',
+    intel: {
+      trofeos:     { label: 'Hackathon trophies', value: '2 años — evalúa alternativas', description: "Hackathon trophies y certificaciones AWS/GCP. Sticker: 'Move fast and break things'." },
+      organigrama: { label: 'Org Flat',           value: 'Startup — velocidad es la métrica', description: 'Organigrama flat — 3 niveles. Reporta a los founders.' },
+      documentos:  { label: 'Eval. Proveedores',  value: 'Evaluando competidores — riesgo de churn', description: "Documento: 'Evaluación de proveedores API - Q1'. Tu empresa está en amarillo." },
+      celular:     { label: 'Slack',              value: 'Slack > Teléfono — canal digital', description: 'Slack con canal #infra: 200 mensajes no leídos. Status: 🔥.' },
+      computador:  { label: 'Terminal',           value: 'API Gateway — Product Directory', description: "curl commands fallando. Error: 'API Rate Limit Exceeded — Product Directory'." },
     },
-    openingLine: "Su API de Product Directory nos está tirando rate limits desde las 3am. Estamos evaluando migrar a otro proveedor. Necesito saber si pueden escalar o no — sin vueltas.",
+    openingLine: 'Su API de Product Directory nos está tirando rate limits desde las 3am. Estamos evaluando migrar a otro proveedor. Necesito saber si pueden escalar o no — sin vueltas.',
     responses: {
       full: [
-        { text: "Alejandra, revisé los logs — el rate limit del Product Directory se disparó por un cambio en el burst policy de las 2am. El Functional Pattern Register del catálogo no soporta la volumetría actual de tu integración. Estoy escalando el throughput del API Gateway y te mando el nuevo rate limit por Slack en 20 minutos. También quiero revisar tu evaluación de proveedores — podemos ofrecerte un tier dedicado.", correct: true, panicDelta: -25, feedback: "Habla su idioma técnico, identifica Product Directory con patrón Register, conoce el cambio en la policy, responde por Slack (su canal preferido) y aborda proactivamente el riesgo de churn." },
-        { text: "Alejandra, el problema es que tu integración está golpeando el Service Domain de Party Routing Profile en lugar del Product Directory. El enrutamiento incorrecto causa los rate limits. Necesitamos reconfigurar tu endpoint para apuntar al Control Record correcto.", correct: false, panicDelta: 10, feedback: "TRAMPA: Party Routing Profile gestiona cómo se enruta la atención a clientes (segmentación), no tiene nada que ver con el catálogo de productos ni con APIs. El error dice claramente 'Product Directory'. Inventar un problema de routing cuando el error es de rate limit es perder credibilidad con una CTO." },
-        { text: "Lamentamos las molestias. Nuestro equipo de soporte está revisando su caso con prioridad P1 y le enviaremos una actualización por email en las próximas horas.", correct: false, panicDelta: 30, feedback: "Respuesta corporate que una CTO de fintech detesta. Email es el canal equivocado (usa Slack), 'próximas horas' es demasiado lento, y 'lamentamos las molestias' es lenguaje de call center." },
-        { text: "Los rate limits están configurados según el contrato vigente. Si necesita mayor throughput, podemos agendar una reunión con el equipo comercial para revisar un upgrade de plan.", correct: false, panicDelta: 20, feedback: "Esconderse detrás del contrato cuando la cliente tiene un documento de evaluación de competidores abierto es suicidio comercial. Ella puede migrar en días." }
+        { text: 'Alejandra, revisé los logs — el rate limit del Product Directory se disparó por un cambio en el burst policy de las 2am. El Functional Pattern Register del catálogo no soporta la volumetría actual de tu integración. Estoy escalando el throughput del API Gateway y te mando el nuevo rate limit por Slack en 20 minutos. También quiero revisar tu evaluación de proveedores — podemos ofrecerte un tier dedicado.', correct: true, panicDelta: -25, feedback: 'Habla su idioma técnico, identifica Product Directory con patrón Register, conoce el cambio en la policy, responde por Slack (su canal preferido) y aborda proactivamente el riesgo de churn.' },
+        { text: 'Alejandra, el problema es que tu integración está golpeando el Service Domain de Party Routing Profile en lugar del Product Directory. El enrutamiento incorrecto causa los rate limits. Necesitamos reconfigurar tu endpoint para apuntar al Control Record correcto.', correct: false, panicDelta: 10, feedback: "TRAMPA: Party Routing Profile gestiona segmentación de clientes, no APIs. El error dice claramente 'Product Directory'." },
+        { text: 'Lamentamos las molestias. Nuestro equipo de soporte está revisando su caso con prioridad P1 y le enviaremos una actualización por email en las próximas horas.', correct: false, panicDelta: 30, feedback: "Respuesta corporate que una CTO de fintech detesta. Email es el canal equivocado, 'próximas horas' es demasiado lento, y 'lamentamos las molestias' es lenguaje de call center." },
+        { text: 'Los rate limits están configurados según el contrato vigente. Si necesita mayor throughput, podemos agendar una reunión con el equipo comercial para revisar un upgrade de plan.', correct: false, panicDelta: 20, feedback: 'Esconderse detrás del contrato cuando la cliente tiene un documento de evaluación de competidores abierto es suicidio comercial.' },
       ],
       partial: [
-        { text: "Alejandra, estoy viendo los rate limits del API Gateway sobre Product Directory. El patrón Register tiene un cap que pudo haber cambiado. Dame 15 minutos para verificar la burst policy y te paso la solución. ¿Slack o aquí mismo?", correct: true, panicDelta: -10, feedback: "Habla técnico, identifica el SD y patrón, da timeline corto (15 min), y pregunta por canal de preferencia." },
-        { text: "Alejandra, probablemente el Functional Pattern Fulfill de tu catálogo está saturado. Vamos a optimizar el Control Record del Product Directory para mejorar el rendimiento.", correct: false, panicDelta: 5, feedback: "TRAMPA: Product Directory usa patrón Register (mantener catálogo), no Fulfill (completar proceso). Confundir patrones frente a una CTO técnica destruye tu credibilidad — ella probablemente conoce BIAN." },
-        { text: "Vamos a abrir un ticket con el equipo de infraestructura para que revisen los rate limits de la API y te den una respuesta.", correct: false, panicDelta: 15, feedback: "Demasiado lento y burocrático para una fintech que se mueve rápido. Un ticket implica cola, SLA, escalamientos... ella puede migrar antes de que lo resuelvas." },
-        { text: "¿Puedes enviarme los headers de la respuesta HTTP? Necesito ver el X-RateLimit-Remaining para confirmar qué endpoint está limitado.", correct: false, panicDelta: 8, feedback: "Técnicamente razonable pero reactivo. Ella ya te dijo qué API falla (Product Directory). Pedir datos que ella ya te dio demuestra que no leíste su reporte." }
+        { text: 'Alejandra, estoy viendo los rate limits del API Gateway sobre Product Directory. El patrón Register tiene un cap que pudo haber cambiado. Dame 15 minutos para verificar la burst policy y te paso la solución. ¿Slack o aquí mismo?', correct: true, panicDelta: -10, feedback: 'Habla técnico, identifica el SD y patrón, da timeline corto (15 min), y pregunta por canal de preferencia.' },
+        { text: 'Alejandra, probablemente el Functional Pattern Fulfill de tu catálogo está saturado. Vamos a optimizar el Control Record del Product Directory para mejorar el rendimiento.', correct: false, panicDelta: 5, feedback: 'TRAMPA: Product Directory usa patrón Register (mantener catálogo), no Fulfill. Confundir patrones frente a una CTO técnica destruye tu credibilidad.' },
+        { text: 'Vamos a abrir un ticket con el equipo de infraestructura para que revisen los rate limits de la API y te den una respuesta.', correct: false, panicDelta: 15, feedback: 'Demasiado lento y burocrático para una fintech que se mueve rápido.' },
+        { text: '¿Puedes enviarme los headers de la respuesta HTTP? Necesito ver el X-RateLimit-Remaining para confirmar qué endpoint está limitado.', correct: false, panicDelta: 8, feedback: 'Técnicamente razonable pero reactivo. Ella ya te dijo qué API falla (Product Directory).' },
       ],
       none: [
-        { text: "Pásame el endpoint exacto y los headers del error. ¿Es el Product Directory completo o un Behavior Qualifier específico del catálogo? Lo reviso directo en el API Gateway.", correct: true, panicDelta: 5, feedback: "Sin contexto previo, pedir datos técnicos específicos y mencionar Behavior Qualifiers es lo correcto con una CTO. Demuestra competencia técnica desde el primer contacto." },
-        { text: "Entiendo la urgencia. ¿Cuál es tu volumetría actual de requests por segundo? Así puedo verificar si estás dentro del tier contratado.", correct: false, panicDelta: 10, feedback: "TRAMPA: Suena técnico y razonable, pero implica que el problema podría ser culpa de ella (excedió el tier). Una CTO evaluando competidores no quiere oír que el problema es suyo." },
-        { text: "¿Puedes enviarme un email con la descripción completa del problema y los logs? Así lo puedo distribuir al equipo correcto.", correct: false, panicDelta: 25, feedback: "Pedir email a una CTO de fintech que vive en Slack es la señal definitiva de que estás desconectado de su mundo." },
-        { text: "Necesito revisar internamente qué cambios se hicieron en la API. Te contacto mañana con una respuesta.", correct: false, panicDelta: 20, feedback: "Mañana es inaceptable. Ella tiene una evaluación de proveedores abierta. Cada hora que pasa sin resolución la acerca más a migrar." }
-      ]
-    }
+        { text: 'Pásame el endpoint exacto y los headers del error. ¿Es el Product Directory completo o un Behavior Qualifier específico del catálogo? Lo reviso directo en el API Gateway.', correct: true, panicDelta: 5, feedback: 'Sin contexto previo, pedir datos técnicos específicos y mencionar Behavior Qualifiers es lo correcto con una CTO.' },
+        { text: 'Entiendo la urgencia. ¿Cuál es tu volumetría actual de requests por segundo? Así puedo verificar si estás dentro del tier contratado.', correct: false, panicDelta: 10, feedback: 'TRAMPA: Implica que el problema podría ser culpa de ella (excedió el tier). Una CTO evaluando competidores no quiere oír eso.' },
+        { text: '¿Puedes enviarme un email con la descripción completa del problema y los logs? Así lo puedo distribuir al equipo correcto.', correct: false, panicDelta: 25, feedback: 'Pedir email a una CTO de fintech que vive en Slack es la señal definitiva de que estás desconectado de su mundo.' },
+        { text: 'Necesito revisar internamente qué cambios se hicieron en la API. Te contacto mañana con una respuesta.', correct: false, panicDelta: 20, feedback: 'Mañana es inaceptable. Cada hora que pasa la acerca más a migrar.' },
+      ],
+    },
   },
-  "compliance-officer": {
-    id: "compliance-officer",
-    name: "Eduardo Paredes",
-    title: "CCO — Banco de Inversiones Pacífico",
-    personality: "Cauteloso, normativo, cada palabra tiene peso legal",
-    avatar: "⚖️",
-    officeClues: {
-      trofeos: {
-        icon: "🏆", label: "Diplomas",
-        x: 8, y: 15,
-        description: "Diplomas de Derecho y MBA. Certificación CAMS (Anti-lavado). '12 años de relación'.",
-        intel: { key: "loyalty", value: "12 años — cada promesa es contractual" }
-      },
-      organigrama: {
-        icon: "📋", label: "Board Compliance",
-        x: 35, y: 8,
-        description: "Reporta al Board de Compliance. 'Revisión regulatoria SBS próximo mes'.",
-        intel: { key: "pressure", value: "Board + SBS — presión regulatoria" }
-      },
-      documentos: {
-        icon: "📄", label: "Circular SBS",
-        x: 55, y: 50,
-        description: "Circular SBS sobre operaciones sospechosas. Post-it: 'Plazo: 30 días'.",
-        intel: { key: "audit", value: "SBS — AML/KYC — 30 días" }
-      },
-      celular: {
-        icon: "📱", label: "Llamadas Regulador",
-        x: 70, y: 55,
-        description: "2 llamadas del regulador. Email: 'Requerimiento de información — plazo perentorio'.",
-        intel: { key: "urgency", value: "Regulador contactó directamente — riesgo sanción" }
-      },
-      computador: {
-        icon: "🖥️", label: "Sistema AML",
-        x: 80, y: 30,
-        description: "Monitoreo de transacciones con 847 alertas AML sin procesar.",
-        intel: { key: "system", value: "Sistema AML — Compliance Reporting" }
-      }
+  'compliance-officer': {
+    id: 'compliance-officer',
+    name: 'Eduardo Paredes',
+    title: 'CCO · Banco de Inversiones Pacífico',
+    personality: 'Cauteloso, normativo, cada palabra tiene peso legal',
+    initials: 'EP',
+    accentColor: '#7C2D3A',
+    intel: {
+      trofeos:     { label: 'Diplomas',           value: '12 años — cada promesa es contractual', description: "Diplomas de Derecho y MBA. Certificación CAMS (Anti-lavado). '12 años de relación'." },
+      organigrama: { label: 'Board Compliance',   value: 'Board + SBS — presión regulatoria', description: "Reporta al Board de Compliance. 'Revisión regulatoria SBS próximo mes'." },
+      documentos:  { label: 'Circular SBS',       value: 'SBS — AML/KYC — 30 días',          description: "Circular SBS sobre operaciones sospechosas. Post-it: 'Plazo: 30 días'." },
+      celular:     { label: 'Teléfono fijo',      value: 'Regulador contactó directamente — riesgo sanción', description: "2 llamadas del regulador. Email: 'Requerimiento de información — plazo perentorio'." },
+      computador:  { label: 'Sistema AML',        value: 'Sistema AML — Compliance Reporting', description: 'Monitoreo de transacciones con 847 alertas AML sin procesar.' },
     },
-    openingLine: "El sistema de monitoreo AML tiene 847 alertas sin procesar y la SBS nos pidió un reporte en 30 días. Si no cumplimos, la sanción es millonaria. Necesito que me garanticen que el sistema va a funcionar.",
+    openingLine: 'El sistema de monitoreo AML tiene 847 alertas sin procesar y la SBS nos pidió un reporte en 30 días. Si no cumplimos, la sanción es millonaria. Necesito que me garanticen que el sistema va a funcionar.',
     responses: {
       full: [
-        { text: "Doctor Paredes, entiendo la criticidad del requerimiento de la SBS. Plan: primero, estabilizamos el Service Domain de Compliance Reporting esta semana para desagotar las 847 alertas. Segundo, activamos Financial Transaction Analysis con Functional Pattern Analyze para el filtrado automático de operaciones sospechosas. Le entrego un informe documentado de cada paso para su archivo regulatorio. No le digo 'garantía' porque sería irresponsable — le digo plan concreto con evidencia auditable.", correct: true, panicDelta: -25, feedback: "Excepcional. No promete garantías (un abogado las rechazaría), ofrece plan auditable con los dos Service Domains correctos: Compliance Reporting (generar reportes regulatorios) y Financial Transaction Analysis (analizar patrones sospechosos)." },
-        { text: "Doctor Paredes, activamos el Service Domain de Fraud Evaluation para procesar las 847 alertas AML pendientes. Con el Functional Pattern Assess vamos a evaluar cada transacción sospechosa y generar el reporte para la SBS en el plazo establecido.", correct: false, panicDelta: 10, feedback: "TRAMPA: Fraud Evaluation evalúa si una transacción es fraudulenta (caso a caso), pero el problema aquí son alertas AML MASIVAS sin procesar que requieren Compliance Reporting (reporte regulatorio) y Financial Transaction Analysis (análisis de patrones). Fraud Evaluation no genera reportes regulatorios ni procesa colas de alertas." },
-        { text: "Le garantizo que todo estará resuelto antes del plazo de la SBS. Puede confiar en nuestro equipo — nunca hemos fallado un deadline regulatorio.", correct: false, panicDelta: 15, feedback: "Un Chief Compliance Officer con certificación CAMS sabe que las garantías verbales no tienen valor legal ni regulatorio. Cualquier garantía verbal puede ser usada en su contra si falla." },
-        { text: "Podemos asignar personal adicional para procesar las 847 alertas manualmente mientras arreglamos el sistema automatizado. Así cumplimos con el plazo.", correct: false, panicDelta: 20, feedback: "847 alertas procesadas manualmente implican riesgo de error humano inaceptable en compliance AML. Un falso negativo en una operación sospechosa puede significar multa o responsabilidad penal." }
+        { text: "Doctor Paredes, entiendo la criticidad del requerimiento de la SBS. Plan: primero, estabilizamos el Service Domain de Compliance Reporting esta semana para desagotar las 847 alertas. Segundo, activamos Financial Transaction Analysis con Functional Pattern Analyze para el filtrado automático de operaciones sospechosas. Le entrego un informe documentado de cada paso para su archivo regulatorio. No le digo 'garantía' porque sería irresponsable — le digo plan concreto con evidencia auditable.", correct: true, panicDelta: -25, feedback: 'Excepcional. No promete garantías (un abogado las rechazaría), ofrece plan auditable con los dos Service Domains correctos.' },
+        { text: 'Doctor Paredes, activamos el Service Domain de Fraud Evaluation para procesar las 847 alertas AML pendientes. Con el Functional Pattern Assess vamos a evaluar cada transacción sospechosa y generar el reporte para la SBS en el plazo establecido.', correct: false, panicDelta: 10, feedback: 'TRAMPA: Fraud Evaluation evalúa fraude caso a caso, pero el problema son alertas AML masivas que requieren Compliance Reporting y Financial Transaction Analysis.' },
+        { text: 'Le garantizo que todo estará resuelto antes del plazo de la SBS. Puede confiar en nuestro equipo — nunca hemos fallado un deadline regulatorio.', correct: false, panicDelta: 15, feedback: 'Un Chief Compliance Officer con CAMS sabe que las garantías verbales no tienen valor legal.' },
+        { text: 'Podemos asignar personal adicional para procesar las 847 alertas manualmente mientras arreglamos el sistema automatizado. Así cumplimos con el plazo.', correct: false, panicDelta: 20, feedback: '847 alertas manuales implican riesgo de error humano inaceptable en compliance AML.' },
       ],
       partial: [
-        { text: "Doctor Paredes, conozco la presión regulatoria de la SBS. Necesito revisar el estado del sistema para entregarle un plan con pasos documentados y trazables. ¿Puede darme acceso a la cola de alertas y al formato del reporte que la SBS está solicitando? Así alineamos la solución con el requerimiento exacto.", correct: true, panicDelta: -10, feedback: "Bien. Pide datos concretos del regulador (el formato del reporte) y habla de documentación y trazabilidad — exactamente el idioma de un compliance officer." },
-        { text: "Doctor Paredes, vamos a configurar el Service Domain de Party Routing Profile para que redirija las alertas AML al equipo de compliance más rápido y puedan procesarlas a tiempo.", correct: false, panicDelta: 8, feedback: "TRAMPA: Party Routing Profile gestiona segmentación y enrutamiento de atención al cliente, no tiene relación con flujos de alertas AML. Suena a solución pero no resuelve el problema de procesamiento de alertas." },
-        { text: "Vamos a asignar más recursos técnicos al problema para acelerar la resolución del sistema AML.", correct: false, panicDelta: 10, feedback: "Vago e impreciso. Un CCO necesita un plan con pasos, responsables, fechas y evidencia — no promesas genéricas de 'más recursos'." },
-        { text: "Estamos al tanto de la situación. Le sugiero que solicite a la SBS una prórroga mientras resolvemos el problema técnico.", correct: false, panicDelta: 25, feedback: "Sugerir a un CCO que pida prórroga al regulador demuestra desconocimiento total. Pedir prórroga es señal de debilidad regulatoria que puede desencadenar una inspección completa." }
+        { text: 'Doctor Paredes, conozco la presión regulatoria de la SBS. Necesito revisar el estado del sistema para entregarle un plan con pasos documentados y trazables. ¿Puede darme acceso a la cola de alertas y al formato del reporte que la SBS está solicitando?', correct: true, panicDelta: -10, feedback: 'Bien. Pide datos concretos del regulador y habla de documentación y trazabilidad.' },
+        { text: 'Doctor Paredes, vamos a configurar el Service Domain de Party Routing Profile para que redirija las alertas AML al equipo de compliance más rápido y puedan procesarlas a tiempo.', correct: false, panicDelta: 8, feedback: 'TRAMPA: Party Routing Profile gestiona segmentación de atención, no flujos de alertas AML.' },
+        { text: 'Vamos a asignar más recursos técnicos al problema para acelerar la resolución del sistema AML.', correct: false, panicDelta: 10, feedback: "Vago e impreciso. Un CCO necesita un plan con pasos, responsables, fechas — no promesas genéricas." },
+        { text: 'Estamos al tanto de la situación. Le sugiero que solicite a la SBS una prórroga mientras resolvemos el problema técnico.', correct: false, panicDelta: 25, feedback: 'Sugerir a un CCO que pida prórroga al regulador es señal de debilidad regulatoria.' },
       ],
       none: [
-        { text: "Doctor Paredes, necesito entender el requerimiento regulatorio exacto. ¿Tiene el oficio de la SBS para dimensionar el alcance? Quiero asegurarme de que la solución técnica que implementemos genere la evidencia auditable que el regulador espera.", correct: true, panicDelta: 5, feedback: "Correcto sin información previa. Pide el documento regulatorio oficial y habla de 'evidencia auditable' — demuestra que entiende el contexto legal y que la solución técnica debe servir al compliance, no al revés." },
-        { text: "Doctor Paredes, ¿cuántas de las 847 alertas son verdaderos positivos? Podríamos descartar las falsas alarmas rápidamente y enfocarnos en las reales.", correct: false, panicDelta: 12, feedback: "TRAMPA: Suena eficiente, pero descartar alertas AML sin procesarlas formalmente es una violación regulatoria. TODAS las alertas deben ser evaluadas, documentadas y clasificadas — incluso las falsas alarmas necesitan un registro de por qué se descartaron." },
-        { text: "No se preocupe Doctor Paredes, estos temas regulatorios se resuelven siempre antes de los plazos. Tenemos experiencia con este tipo de situaciones.", correct: false, panicDelta: 30, feedback: "Minimizar riesgo regulatorio frente a un Chief Compliance Officer es la peor señal posible. Él sabe exactamente cuánto cuesta cada día de incumplimiento." },
-        { text: "Entiendo la urgencia. Voy a revisar el sistema y le preparo una propuesta para la próxima semana.", correct: false, panicDelta: 18, feedback: "Con el regulador ya habiendo llamado directamente, 'próxima semana' comunica que no entiendes la urgencia. El reloj ya está corriendo." }
-      ]
-    }
+        { text: 'Doctor Paredes, necesito entender el requerimiento regulatorio exacto. ¿Tiene el oficio de la SBS para dimensionar el alcance? Quiero asegurarme de que la solución técnica que implementemos genere la evidencia auditable que el regulador espera.', correct: true, panicDelta: 5, feedback: "Correcto sin información previa. Pide el documento regulatorio oficial y habla de 'evidencia auditable'." },
+        { text: 'Doctor Paredes, ¿cuántas de las 847 alertas son verdaderos positivos? Podríamos descartar las falsas alarmas rápidamente y enfocarnos en las reales.', correct: false, panicDelta: 12, feedback: 'TRAMPA: Descartar alertas AML sin procesarlas formalmente es violación regulatoria.' },
+        { text: 'No se preocupe Doctor Paredes, estos temas regulatorios se resuelven siempre antes de los plazos. Tenemos experiencia con este tipo de situaciones.', correct: false, panicDelta: 30, feedback: 'Minimizar riesgo regulatorio frente a un Chief Compliance Officer es la peor señal posible.' },
+        { text: 'Entiendo la urgencia. Voy a revisar el sistema y le preparo una propuesta para la próxima semana.', correct: false, panicDelta: 18, feedback: "Con el regulador ya habiendo llamado directamente, 'próxima semana' comunica que no entiendes la urgencia." },
+      ],
+    },
+  },
+};
+
+const PROFILE_KEYS = Object.keys(CLIENT_PROFILES);
+
+// Fisher-Yates true random shuffle
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
   }
-};
+  return a;
+}
 
-
-// ─── PANIC METER ─────────────────────────────────────────────────────
-const PanicMeter = ({ value }) => {
-  const color = value > 70 ? '#ef4444' : value > 40 ? '#f59e0b' : '#22c55e';
-  const label = value > 70 ? 'CRÍTICO' : value > 40 ? 'ELEVADO' : 'CONTROLADO';
-  return (
-    <div className="flex items-center gap-3">
-      <span className="text-xs text-zinc-500 font-mono">PÁNICO</span>
-      <div className="relative w-32 h-3 bg-zinc-800 rounded-full overflow-hidden">
-        <div className="absolute inset-y-0 left-0 rounded-full transition-all duration-500"
-          style={{ width: `${Math.min(100, Math.max(0, value))}%`, backgroundColor: color }} />
-      </div>
-      <span className="text-xs font-mono font-bold" style={{ color }}>{label}</span>
-    </div>
-  );
-};
-// ─── MAIN COMPONENT ──────────────────────────────────────────────────
+// ============================================================================
+//  COMPONENTE PRINCIPAL
+// ============================================================================
 export default function ClientDirectorStation({
   socket = null,
   gameStore = null,
   soloMode = true,
-  profileId = 'director-agresivo',
-  onComplete = null
+  profileId = null,        // Si null, se elige random; si viene fijo, se respeta
+  onComplete = null,
 }) {
-  const profile = CLIENT_PROFILES[profileId] || CLIENT_PROFILES['director-agresivo'];
+  // Selección de perfil: respeta profileId si viene, si no random
+  const [currentProfileId, setCurrentProfileId] = useState(() => profileId || PROFILE_KEYS[Math.floor(Math.random() * PROFILE_KEYS.length)]);
+  const profile = CLIENT_PROFILES[currentProfileId] || CLIENT_PROFILES['director-agresivo'];
 
   const [phase, setPhase] = useState('investigation'); // investigation | meeting | result
   const [discoveredKeys, setDiscoveredKeys] = useState([]);
@@ -342,15 +261,15 @@ export default function ClientDirectorStation({
   const [intelGathered, setIntelGathered] = useState([]);
   const [timeLeft, setTimeLeft] = useState(60);
   const [panic, setPanic] = useState(50);
+  const [shuffledResponses, setShuffledResponses] = useState(null);
   const [selectedResponse, setSelectedResponse] = useState(null);
   const [showFeedback, setShowFeedback] = useState(false);
   const timerRef = useRef(null);
-  // Tema aleatorio — se elige una vez al montar
 
-  const totalClues = Object.keys(profile.officeClues).length;
+  const totalClues = Object.keys(profile.intel).length;
   const intelLevel = intelGathered.length >= 4 ? 'full' : intelGathered.length >= 2 ? 'partial' : 'none';
 
-  // Investigation timer
+  // Timer fase investigación
   useEffect(() => {
     if (phase !== 'investigation') return;
     timerRef.current = setInterval(() => {
@@ -366,14 +285,23 @@ export default function ClientDirectorStation({
     return () => clearInterval(timerRef.current);
   }, [phase]);
 
+  // Cuando se entra a la fase meeting, se baraja las respuestas (random verdadero)
+  useEffect(() => {
+    if (phase === 'meeting' && !shuffledResponses) {
+      const responses = profile.responses[intelLevel] || profile.responses.none;
+      setShuffledResponses(shuffle(responses));
+    }
+  }, [phase, profile, intelLevel, shuffledResponses]);
+
   const handleClueClick = useCallback((key) => {
     if (phase !== 'investigation') return;
-    const clue = profile.officeClues[key];
+    const clueData = profile.intel[key];
+    if (!clueData) return;
     if (!discoveredKeys.includes(key)) {
       setDiscoveredKeys(prev => [...prev, key]);
-      setIntelGathered(prev => [...prev, clue.intel]);
+      setIntelGathered(prev => [...prev, { key, ...clueData }]);
     }
-    setActiveClue({ key, ...clue });
+    setActiveClue({ key, ...clueData });
   }, [phase, profile, discoveredKeys]);
 
   const handleSkipToMeeting = useCallback(() => {
@@ -386,12 +314,11 @@ export default function ClientDirectorStation({
     setPanic(prev => Math.min(100, Math.max(0, prev + response.panicDelta)));
     setShowFeedback(true);
 
-    // Emit panic change via socket in team mode
     if (socket && !soloMode) {
       socket.emit('panicUpdate', {
         delta: response.panicDelta,
         source: 'clientDirector',
-        correct: response.correct
+        correct: response.correct,
       });
     }
   }, [socket, soloMode]);
@@ -401,272 +328,646 @@ export default function ClientDirectorStation({
   }, []);
 
   const handleRestart = useCallback(() => {
+    // Si no había profileId fijo, se rotea a otro cliente random
+    if (!profileId) {
+      const others = PROFILE_KEYS.filter(k => k !== currentProfileId);
+      setCurrentProfileId(others[Math.floor(Math.random() * others.length)]);
+    }
     setPhase('investigation');
     setDiscoveredKeys([]);
     setActiveClue(null);
     setIntelGathered([]);
     setTimeLeft(60);
     setPanic(50);
+    setShuffledResponses(null);
     setSelectedResponse(null);
     setShowFeedback(false);
-  }, []);
+  }, [profileId, currentProfileId]);
 
-  // Get available responses based on intel level — shuffled
-  const getResponses = useCallback(() => {
-    const responses = profile.responses[intelLevel] || profile.responses.none;
-    // Deterministic shuffle based on profile + intel to keep order stable during render
-    const seed = profile.id.length + intelLevel.length;
-    const shuffled = [...responses];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = (seed * (i + 1) * 7 + 3) % (i + 1);
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return shuffled;
-  }, [profile, intelLevel]);
-
-  // ─── INVESTIGATION PHASE ────────────────────────────────────────
+  // ──────────────────────────────────────────────────────────────────────
+  // FASE 1: INVESTIGACIÓN
+  // ──────────────────────────────────────────────────────────────────────
   if (phase === 'investigation') {
     return (
-      <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col">
-        <style>{`
-          @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-        `}</style>
+      <div style={{
+        minHeight: '100vh', background: C.base, color: C.text,
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+        display: 'flex', flexDirection: 'column',
+      }}>
+        <style dangerouslySetInnerHTML={{ __html: ANIM }} />
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-2 bg-zinc-900 border-b border-zinc-800">
-          <div className="flex items-center gap-3">
-            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-            <span className="text-xs text-blue-400 font-mono font-bold">FASE 1 — INVESTIGACIÓN</span>
-            <span className="text-zinc-600 font-mono text-xs">|</span>
-            <span className="text-xs text-zinc-400 font-mono">Oficina de {profile.name}</span>
-          </div>
-          <div className={`px-3 py-1 rounded font-mono text-sm font-bold ${timeLeft <= 15 ? 'bg-red-950 text-red-400' : 'bg-zinc-800 text-zinc-300'}`}>
-            ⏱ 0:{String(timeLeft).padStart(2, '0')}
-          </div>
-        </div>
+        <InvestigationHeader profile={profile} timeLeft={timeLeft} onSkip={handleSkipToMeeting} />
+        <IntelBar profile={profile} discoveredKeys={discoveredKeys} totalClues={totalClues} />
 
-        {/* Intel bar */}
-        <div className="px-4 py-2 bg-zinc-900/50 border-b border-zinc-800/50 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-zinc-500 font-mono">INTEL:</span>
-            <div className="flex gap-1">
-              {Object.keys(profile.officeClues).map((key, i) => (
-                <div
-                  key={key}
-                  className={`w-6 h-6 rounded flex items-center justify-center text-xs ${discoveredKeys.includes(key) ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-700' : 'bg-zinc-800 text-zinc-600 border border-zinc-700'
-                    }`}
-                >
-                  {discoveredKeys.includes(key) ? '✓' : '?'}
-                </div>
-              ))}
-            </div>
-            <span className="text-xs text-zinc-500 font-mono ml-2">{discoveredKeys.length}/{totalClues}</span>
-          </div>
-          <button
-            onClick={handleSkipToMeeting}
-            className="px-3 py-1 text-xs bg-amber-900/50 hover:bg-amber-900 text-amber-400 font-mono rounded transition-colors border border-amber-800/50"
-          >
-            Ir a la reunión →
-          </button>
-        </div>
-
-        {/* Office SVG */}
-        <div className="relative w-full" style={{ height: '60vh', minHeight: '400px' }}>
-          <ImageBasedOffice
+        {/* Escena de la oficina */}
+        <div style={{ flex: 1, padding: '20px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <OfficeScene
+            clientId={currentProfileId}
             discoveredKeys={discoveredKeys}
-            onClueClick={handleClueClick}
             activeClueKey={activeClue?.key}
+            onClueClick={handleClueClick}
           />
         </div>
 
-        {/* Clue popup */}
-        {activeClue && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setActiveClue(null)}>
-            <div
-              className="w-full max-w-md mx-4 bg-zinc-900 border border-zinc-700 rounded-lg overflow-hidden"
-              onClick={e => e.stopPropagation()}
-              style={{ animation: 'popIn 0.2s ease-out' }}
-            >
-              <div className="flex items-center gap-2 px-4 py-3 bg-zinc-800/80 border-b border-zinc-700">
-                <span className="text-xl">{activeClue.icon}</span>
-                <span className="text-sm font-bold text-zinc-100 font-mono">{activeClue.label}</span>
-              </div>
-              <div className="p-4 space-y-3">
-                <p className="text-sm text-zinc-300 font-mono leading-relaxed">{activeClue.description}</p>
-                <div className="p-2 bg-blue-950/30 border border-blue-900/30 rounded">
-                  <p className="text-xs text-blue-300 font-mono">
-                    <span className="text-blue-500 font-bold">INTEL:</span> {activeClue.intel.value}
+        {/* Tira de intel descubierta */}
+        {intelGathered.length > 0 && (
+          <div style={{ padding: '10px 20px', background: C.surface, borderTop: `1px solid ${C.border}`, overflowX: 'auto' }}>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <span style={{ fontSize: 10, color: C.muted, letterSpacing: '0.08em', fontWeight: 500, marginRight: 6, whiteSpace: 'nowrap' }}>
+                INTEL RECOPILADA:
+              </span>
+              {intelGathered.map((intel, i) => (
+                <span key={i} style={{
+                  flexShrink: 0,
+                  padding: '4px 10px',
+                  background: `${C.role}15`, border: `1px solid ${C.role}55`,
+                  borderRadius: 4, fontSize: 11, fontFamily: 'ui-monospace, monospace',
+                  color: C.role, fontWeight: 500,
+                }}>
+                  {intel.value.split(' — ')[0]}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Popup de pista */}
+        {activeClue && <CluePopup clue={activeClue} accentColor={profile.accentColor} onClose={() => setActiveClue(null)} />}
+      </div>
+    );
+  }
+
+  // ──────────────────────────────────────────────────────────────────────
+  // FASE 2: REUNIÓN
+  // ──────────────────────────────────────────────────────────────────────
+  if (phase === 'meeting') {
+    return (
+      <MeetingPhase
+        profile={profile}
+        intelLevel={intelLevel}
+        intelGathered={intelGathered}
+        totalClues={totalClues}
+        panic={panic}
+        responses={shuffledResponses || []}
+        selectedResponse={selectedResponse}
+        showFeedback={showFeedback}
+        onSelectResponse={handleSelectResponse}
+        onFinish={handleFinish}
+      />
+    );
+  }
+
+  // ──────────────────────────────────────────────────────────────────────
+  // FASE 3: RESULTADOS
+  // ──────────────────────────────────────────────────────────────────────
+  return (
+    <ResultsPhase
+      profile={profile}
+      discoveredKeys={discoveredKeys}
+      totalClues={totalClues}
+      intelGathered={intelGathered}
+      intelLevel={intelLevel}
+      selectedResponse={selectedResponse}
+      panic={panic}
+      onRestart={handleRestart}
+      onContinue={() => onComplete?.({ panic, correct: selectedResponse?.correct, intelLevel })}
+    />
+  );
+}
+
+// ============================================================================
+//  HEADER FASE INVESTIGACIÓN
+// ============================================================================
+function InvestigationHeader({ profile, timeLeft, onSkip }) {
+  const timerColor = timeLeft <= 10 ? C.danger : timeLeft <= 20 ? C.warning : C.role;
+  const pulse = timeLeft <= 5 && timeLeft > 0;
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      padding: '12px 20px', background: C.surface, borderBottom: `1px solid ${C.border}`,
+      flexWrap: 'wrap', gap: 12,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{
+          width: 30, height: 30, background: C.role, borderRadius: 6,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+            <circle cx="8" cy="6" r="3" stroke={C.roleDark} strokeWidth="1.5" fill="none" />
+            <path d="M3 14 Q3 10 8 10 Q13 10 13 14" stroke={C.roleDark} strokeWidth="1.5" fill="none" strokeLinecap="round" />
+          </svg>
+        </div>
+        <div>
+          <div style={{ fontSize: 11, color: C.muted, letterSpacing: '0.08em', fontWeight: 500 }}>
+            CLIENT DIRECTOR · FASE 1 — INVESTIGACIÓN
+          </div>
+          <div style={{ fontSize: 14, color: C.text, fontWeight: 500, marginTop: 1 }}>
+            Oficina de {profile.name} <span style={{ color: C.hint, fontWeight: 400 }}>· {profile.title}</span>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div className={pulse ? 'cd-pulse' : ''} style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '8px 14px', borderRadius: 8,
+          background: `${timerColor}15`, border: `1px solid ${timerColor}55`,
+        }}>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+            <circle cx="8" cy="9" r="5.5" stroke={timerColor} strokeWidth="1.5" fill="none" />
+            <path d="M8 6 L8 9 L10.5 10" stroke={timerColor} strokeWidth="1.5" strokeLinecap="round" />
+            <path d="M6 2 L10 2" stroke={timerColor} strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
+          <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: 16, fontWeight: 500, color: timerColor, letterSpacing: '0.02em' }}>
+            0:{String(timeLeft).padStart(2, '0')}
+          </span>
+        </div>
+
+        <button onClick={onSkip} className="cd-btn" style={{
+          background: C.role, color: C.roleDark,
+          border: `1px solid ${C.role}`, padding: '8px 16px', borderRadius: 6,
+          fontSize: 13, fontWeight: 500, fontFamily: 'inherit',
+          display: 'flex', alignItems: 'center', gap: 6,
+        }}>
+          Ir a la reunión <span style={{ fontSize: 16, lineHeight: 1 }}>→</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+//  BARRA DE INTEL (5 puntos arriba)
+// ============================================================================
+function IntelBar({ profile, discoveredKeys, totalClues }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 12,
+      padding: '10px 20px', background: C.base, borderBottom: `1px solid ${C.border}`,
+    }}>
+      <span style={{ fontSize: 11, color: C.muted, letterSpacing: '0.08em', fontWeight: 500 }}>
+        INTEL
+      </span>
+      <div style={{ display: 'flex', gap: 6 }}>
+        {Object.entries(profile.intel).map(([key, c]) => {
+          const found = discoveredKeys.includes(key);
+          return (
+            <div key={key} title={found ? c.label : 'Por descubrir'} style={{
+              width: 26, height: 26, borderRadius: 5,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: found ? `${C.success}20` : C.raised,
+              border: `1px solid ${found ? C.success : C.borderStrong}`,
+              fontSize: 12, color: found ? C.success : C.hint, fontFamily: 'ui-monospace, monospace',
+              transition: 'all .2s ease',
+            }}>
+              {found ? (
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                  <path d="M3 8 L7 12 L13 5" stroke={C.success} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              ) : '?'}
+            </div>
+          );
+        })}
+      </div>
+      <span style={{ fontSize: 12, color: C.muted, fontFamily: 'ui-monospace, monospace', fontWeight: 500 }}>
+        {discoveredKeys.length}/{totalClues}
+      </span>
+    </div>
+  );
+}
+
+// ============================================================================
+//  POPUP DE PISTA DESCUBIERTA
+// ============================================================================
+function CluePopup({ clue, accentColor, onClose }) {
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, zIndex: 50,
+      background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: 16,
+    }}>
+      <div onClick={e => e.stopPropagation()} className="cd-pop" style={{
+        width: '100%', maxWidth: 460,
+        background: C.base, border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden',
+      }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '14px 18px', background: C.surface, borderBottom: `1px solid ${C.border}`,
+        }}>
+          <div>
+            <div style={{ fontSize: 14, color: C.text, fontWeight: 500 }}>{clue.label}</div>
+            <div style={{ fontSize: 11, color: C.muted, fontFamily: 'ui-monospace, monospace', marginTop: 2 }}>Pista descubierta</div>
+          </div>
+          <button onClick={onClose} className="cd-btn" style={{
+            background: 'transparent', border: 'none', color: C.muted,
+            width: 28, height: 28, borderRadius: 4, fontSize: 18,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>×</button>
+        </div>
+
+        <div style={{ padding: '16px 18px' }}>
+          <div style={{
+            background: C.surface, border: `1px solid ${C.border}`, borderRadius: 6,
+            padding: '12px 14px', marginBottom: 14,
+            fontSize: 13, color: C.text, lineHeight: 1.6,
+            fontFamily: 'ui-monospace, monospace',
+          }}>
+            {clue.description}
+          </div>
+
+          <div style={{
+            background: `${C.role}12`, border: `1px solid ${C.role}55`, borderRadius: 8,
+            padding: '12px 14px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: C.role }} />
+              <span style={{ fontSize: 11, color: C.role, letterSpacing: '0.08em', fontWeight: 500 }}>
+                INTEL CLAVE
+              </span>
+            </div>
+            <p style={{ fontSize: 13, color: C.text, lineHeight: 1.5, margin: 0 }}>
+              {clue.value}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+//  FASE 2: REUNIÓN
+// ============================================================================
+function MeetingPhase({
+  profile, intelLevel, intelGathered, totalClues, panic, responses,
+  selectedResponse, showFeedback, onSelectResponse, onFinish,
+}) {
+  const intelLabel = intelLevel === 'full' ? 'COMPLETA' : intelLevel === 'partial' ? 'PARCIAL' : 'SIN INTEL';
+  const intelColor = intelLevel === 'full' ? C.success : intelLevel === 'partial' ? C.warning : C.danger;
+
+  return (
+    <div style={{
+      minHeight: '100vh', background: C.base, color: C.text,
+      fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
+      display: 'flex', flexDirection: 'column',
+    }}>
+      <style dangerouslySetInnerHTML={{ __html: ANIM }} />
+
+      {/* Header de la reunión */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '12px 20px', background: C.surface, borderBottom: `1px solid ${C.border}`,
+        flexWrap: 'wrap', gap: 12,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 30, height: 30, background: C.danger, borderRadius: 6,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+              <path d="M8 2 L14 13 L2 13 Z" stroke={C.dangerDark} strokeWidth="1.5" fill="none" />
+              <path d="M8 6 L8 10 M8 11.5 L8 12" stroke={C.dangerDark} strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: C.muted, letterSpacing: '0.08em', fontWeight: 500 }}>
+              CLIENT DIRECTOR · FASE 2 — REUNIÓN DE CRISIS
+            </div>
+            <div style={{ fontSize: 13, color: C.text, fontWeight: 500, marginTop: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span>Intel disponible:</span>
+              <span style={{ color: intelColor, fontWeight: 600 }}>● {intelLabel}</span>
+              <span style={{ color: C.hint, fontFamily: 'ui-monospace, monospace', fontSize: 11 }}>({intelGathered.length}/{totalClues})</span>
+            </div>
+          </div>
+        </div>
+
+        <PanicMeter value={panic} />
+      </div>
+
+      {/* Cuerpo */}
+      <div style={{
+        flex: 1, padding: '24px 20px', display: 'flex', flexDirection: 'column',
+        maxWidth: 760, margin: '0 auto', width: '100%',
+      }}>
+        {/* Cliente: avatar + opening line */}
+        <div className="cd-fadein" style={{ marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 12 }}>
+            <ClientAvatar profile={profile} />
+            <div>
+              <div style={{ fontSize: 15, color: C.text, fontWeight: 600 }}>{profile.name}</div>
+              <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{profile.title}</div>
+              <div style={{ fontSize: 11, color: C.hint, marginTop: 4, fontStyle: 'italic' }}>{profile.personality}</div>
+            </div>
+          </div>
+
+          {/* Speech bubble */}
+          <div style={{
+            position: 'relative',
+            background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10,
+            padding: '14px 18px', marginLeft: 64,
+          }}>
+            <div style={{
+              position: 'absolute', left: -8, top: 14,
+              width: 14, height: 14,
+              background: C.surface, borderLeft: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}`,
+              transform: 'rotate(45deg)',
+            }} />
+            <p style={{ fontSize: 14, color: C.text, lineHeight: 1.6, margin: 0, fontStyle: 'italic' }}>
+              "{profile.openingLine}"
+            </p>
+          </div>
+        </div>
+
+        {/* Respuestas o feedback */}
+        {!showFeedback ? (
+          <div className="cd-fadein">
+            <div style={{ fontSize: 11, color: C.muted, letterSpacing: '0.08em', fontWeight: 500, marginBottom: 12 }}>
+              ELIGE TU RESPUESTA
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {responses.map((resp, i) => (
+                <div
+                  key={i}
+                  onClick={() => onSelectResponse(resp)}
+                  className="cd-resp-card"
+                  style={{
+                    display: 'flex', alignItems: 'flex-start', gap: 12,
+                    padding: '14px 16px',
+                    background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
+                  }}
+                >
+                  <div style={{
+                    flexShrink: 0,
+                    width: 26, height: 26, borderRadius: 5,
+                    background: C.raised, border: `1px solid ${C.borderStrong}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 12, fontWeight: 600, color: C.muted,
+                    fontFamily: 'ui-monospace, monospace',
+                    marginTop: 1,
+                  }}>
+                    {String.fromCharCode(65 + i)}
+                  </div>
+                  <p style={{ fontSize: 14, color: C.text, lineHeight: 1.55, margin: 0 }}>
+                    {resp.text}
                   </p>
                 </div>
-              </div>
-              <div className="px-4 py-2 bg-zinc-800/30 border-t border-zinc-800">
-                <button onClick={() => setActiveClue(null)} className="w-full py-1.5 text-xs text-zinc-400 font-mono hover:text-zinc-200 transition-colors">
-                  Cerrar
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Intel gathered bar */}
-        {intelGathered.length > 0 && (
-          <div className="px-4 py-2 bg-zinc-900 border-t border-zinc-800 overflow-x-auto">
-            <div className="flex gap-2">
-              {intelGathered.map((intel, i) => (
-                <div key={i} className="flex-shrink-0 px-2 py-1 bg-blue-950/30 border border-blue-900/30 rounded text-xs font-mono text-blue-400">
-                  {intel.value.split(' — ')[0]}
-                </div>
               ))}
             </div>
           </div>
+        ) : (
+          <FeedbackBlock response={selectedResponse} onContinue={onFinish} />
         )}
       </div>
-    );
-  }
+    </div>
+  );
+}
 
-  // ─── MEETING PHASE ──────────────────────────────────────────────
-  if (phase === 'meeting') {
-    const responses = getResponses();
-
-    return (
-      <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-2 bg-zinc-900 border-b border-zinc-800">
-          <div className="flex items-center gap-3">
-            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-            <span className="text-xs text-red-400 font-mono font-bold">FASE 2 — REUNIÓN DE CRISIS</span>
-          </div>
-          <PanicMeter value={panic} />
-        </div>
-
-        {/* Intel summary */}
-        <div className="px-4 py-2 bg-zinc-900/50 border-b border-zinc-800/50">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-zinc-500 font-mono">INTEL DISPONIBLE:</span>
-            <span className={`text-xs font-mono font-bold ${intelLevel === 'full' ? 'text-emerald-400' : intelLevel === 'partial' ? 'text-amber-400' : 'text-red-400'}`}>
-              {intelLevel === 'full' ? '● COMPLETA' : intelLevel === 'partial' ? '◐ PARCIAL' : '○ SIN INTEL'}
-            </span>
-            <span className="text-xs text-zinc-600 font-mono">({discoveredKeys.length}/{totalClues} objetos)</span>
-          </div>
-        </div>
-
-        {/* Meeting room */}
-        <div className="flex-1 flex flex-col justify-center px-4 py-6 max-w-3xl mx-auto w-full">
-          {/* Client avatar & speech */}
-          <div className="mb-6">
-            <div className="flex items-start gap-4 mb-4">
-              <div className="w-14 h-14 bg-zinc-800 rounded-full flex items-center justify-center text-3xl border-2 border-zinc-700 flex-shrink-0">
-                {profile.avatar}
-              </div>
-              <div>
-                <p className="text-sm font-bold text-zinc-100 font-mono">{profile.name}</p>
-                <p className="text-xs text-zinc-500 font-mono">{profile.title}</p>
-              </div>
-            </div>
-            <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-4 relative ml-4">
-              <div className="absolute -left-2 top-4 w-4 h-4 bg-zinc-900 border-l border-b border-zinc-700 rotate-45" />
-              <p className="text-sm text-zinc-200 font-mono leading-relaxed italic">"{profile.openingLine}"</p>
-            </div>
-          </div>
-
-          {/* Response options */}
-          {!showFeedback ? (
-            <div className="space-y-3">
-              <p className="text-xs text-zinc-500 font-mono mb-2">ELIGE TU RESPUESTA:</p>
-              {responses.map((resp, i) => (
-                <button
-                  key={i}
-                  onClick={() => handleSelectResponse(resp)}
-                  className="w-full text-left p-4 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 hover:border-zinc-600 rounded-lg transition-all group"
-                >
-                  <div className="flex items-start gap-3">
-                    <span className="text-xs text-zinc-500 font-mono mt-0.5 bg-zinc-800 px-1.5 py-0.5 rounded group-hover:bg-zinc-700">{String.fromCharCode(65 + i)}</span>
-                    <p className="text-sm text-zinc-300 font-mono leading-relaxed group-hover:text-zinc-100">{resp.text}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-4" style={{ animation: 'popIn 0.3s ease-out' }}>
-              {/* Selected response */}
-              <div className={`p-4 rounded-lg border ${selectedResponse.correct ? 'bg-emerald-950/30 border-emerald-700' : 'bg-red-950/30 border-red-700'}`}>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className={`text-lg ${selectedResponse.correct ? '✅' : '❌'}`}>{selectedResponse.correct ? '✅' : '❌'}</span>
-                  <span className={`text-sm font-bold font-mono ${selectedResponse.correct ? 'text-emerald-400' : 'text-red-400'}`}>
-                    {selectedResponse.correct ? 'RESPUESTA CORRECTA' : 'RESPUESTA INCORRECTA'}
-                  </span>
-                  <span className={`text-xs font-mono ml-auto ${selectedResponse.panicDelta < 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                    Pánico: {selectedResponse.panicDelta > 0 ? '+' : ''}{selectedResponse.panicDelta}
-                  </span>
-                </div>
-                <p className="text-sm text-zinc-300 font-mono leading-relaxed mb-3">{selectedResponse.text}</p>
-                <p className="text-xs text-zinc-400 font-mono italic border-t border-zinc-700 pt-2">{selectedResponse.feedback}</p>
-              </div>
-
-              <button
-                onClick={handleFinish}
-                className="w-full py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-sm font-mono rounded-lg transition-colors"
-              >
-                Ver Resultados →
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // ─── RESULTS PHASE ──────────────────────────────────────────────
+// ============================================================================
+//  AVATAR DEL CLIENTE
+// ============================================================================
+function ClientAvatar({ profile }) {
   return (
-    <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
-      <div className="w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden">
-        <div className="p-6 bg-zinc-800/50 border-b border-zinc-700 text-center">
-          <p className="text-xs text-zinc-500 font-mono mb-2">CLIENT DIRECTOR — RESULTADOS</p>
-          <div className="text-4xl mb-2">{profile.avatar}</div>
-          <p className="text-sm text-zinc-300 font-mono">{profile.name}</p>
+    <div style={{
+      width: 50, height: 50, borderRadius: '50%',
+      background: profile.accentColor, color: C.text,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: 16, fontWeight: 600, fontFamily: 'Georgia, serif',
+      border: `2px solid ${C.borderStrong}`,
+      flexShrink: 0,
+    }}>
+      {profile.initials}
+    </div>
+  );
+}
+
+// ============================================================================
+//  PANIC METER
+// ============================================================================
+function PanicMeter({ value }) {
+  const v = Math.min(100, Math.max(0, value));
+  const color = v > 70 ? C.danger : v > 40 ? C.warning : C.success;
+  const label = v > 70 ? 'CRÍTICO' : v > 40 ? 'ELEVADO' : 'CONTROLADO';
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <span style={{ fontSize: 11, color: C.muted, letterSpacing: '0.08em', fontWeight: 500 }}>PÁNICO</span>
+      <div style={{
+        position: 'relative', width: 140, height: 8, borderRadius: 4,
+        background: C.raised, overflow: 'hidden',
+      }}>
+        <div style={{
+          position: 'absolute', inset: 0, width: `${v}%`,
+          background: color, transition: 'width .5s ease, background .3s ease',
+        }} />
+      </div>
+      <span style={{ fontSize: 11, fontWeight: 600, color, letterSpacing: '0.05em', fontFamily: 'ui-monospace, monospace' }}>
+        {label}
+      </span>
+    </div>
+  );
+}
+
+// ============================================================================
+//  BLOQUE DE FEEDBACK
+// ============================================================================
+function FeedbackBlock({ response, onContinue }) {
+  const isCorrect = response.correct;
+  const color = isCorrect ? C.success : C.danger;
+  const bg = isCorrect ? `${C.success}10` : `${C.danger}10`;
+  const deltaColor = response.panicDelta < 0 ? C.success : C.danger;
+
+  return (
+    <div className="cd-pop">
+      <div style={{
+        background: bg, border: `1px solid ${color}66`, borderRadius: 10, padding: 16, marginBottom: 12,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+          <div style={{
+            width: 28, height: 28, borderRadius: '50%',
+            background: color, color: C.base,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            {isCorrect ? (
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <path d="M3 8 L7 12 L13 5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <path d="M4 4 L12 12 M12 4 L4 12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+              </svg>
+            )}
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 12, color, letterSpacing: '0.08em', fontWeight: 600 }}>
+              {isCorrect ? 'RESPUESTA EFECTIVA' : 'RESPUESTA INADECUADA'}
+            </div>
+          </div>
+          <div style={{
+            padding: '4px 10px', borderRadius: 4,
+            background: `${deltaColor}20`, border: `1px solid ${deltaColor}55`,
+            fontSize: 11, fontWeight: 600, color: deltaColor, fontFamily: 'ui-monospace, monospace',
+          }}>
+            Pánico {response.panicDelta > 0 ? '+' : ''}{response.panicDelta}
+          </div>
         </div>
-        <div className="p-6 space-y-4">
-          <div className="grid grid-cols-3 gap-3 text-center">
-            <div className="bg-zinc-800/50 rounded p-3">
-              <p className="text-xl font-bold text-zinc-100 font-mono">{discoveredKeys.length}/{totalClues}</p>
-              <p className="text-xs text-zinc-500 font-mono">Intel</p>
-            </div>
-            <div className="bg-zinc-800/50 rounded p-3">
-              <p className={`text-xl font-bold font-mono ${selectedResponse?.correct ? 'text-emerald-400' : 'text-red-400'}`}>
-                {selectedResponse?.correct ? '✓' : '✗'}
-              </p>
-              <p className="text-xs text-zinc-500 font-mono">Respuesta</p>
-            </div>
-            <div className="bg-zinc-800/50 rounded p-3">
-              <p className={`text-xl font-bold font-mono ${panic <= 40 ? 'text-emerald-400' : panic <= 70 ? 'text-amber-400' : 'text-red-400'}`}>
-                {panic}%
-              </p>
-              <p className="text-xs text-zinc-500 font-mono">Pánico</p>
-            </div>
+
+        <p style={{ fontSize: 13, color: C.text, lineHeight: 1.6, margin: '0 0 12px', fontStyle: 'italic' }}>
+          "{response.text}"
+        </p>
+
+        <div style={{
+          background: C.base, border: `1px solid ${C.border}`, borderRadius: 6,
+          padding: '10px 12px',
+        }}>
+          <div style={{ fontSize: 11, color: C.muted, letterSpacing: '0.08em', fontWeight: 500, marginBottom: 6 }}>
+            ANÁLISIS
+          </div>
+          <p style={{ fontSize: 13, color: C.text, lineHeight: 1.55, margin: 0 }}>
+            {response.feedback}
+          </p>
+        </div>
+      </div>
+
+      <button onClick={onContinue} className="cd-btn" style={{
+        width: '100%', padding: '12px 16px',
+        background: C.role, color: C.roleDark,
+        border: `1px solid ${C.role}`, borderRadius: 6,
+        fontSize: 14, fontWeight: 500, fontFamily: 'inherit',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+      }}>
+        Ver resultados <span style={{ fontSize: 16 }}>→</span>
+      </button>
+    </div>
+  );
+}
+
+// ============================================================================
+//  FASE 3: RESULTADOS
+// ============================================================================
+function ResultsPhase({ profile, discoveredKeys, totalClues, intelGathered, intelLevel, selectedResponse, panic, onRestart, onContinue }) {
+  // Cálculo de grade combinando intel + correctness + panic
+  const intelScore = (discoveredKeys.length / totalClues) * 35;
+  const correctScore = selectedResponse?.correct ? 35 : 10;
+  const panicScore = Math.max(0, 30 - (panic - 50) * 0.6);
+  const totalScore = Math.min(100, Math.round(intelScore + correctScore + panicScore));
+  const grade = totalScore >= 90 ? 'S' : totalScore >= 75 ? 'A' : totalScore >= 60 ? 'B' : totalScore >= 40 ? 'C' : 'D';
+  const gradeColor = { S: C.warning, A: C.success, B: C.info, C: '#FB923C', D: C.danger }[grade];
+
+  return (
+    <div style={{
+      minHeight: '100vh', background: C.base, color: C.text,
+      fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: 16,
+    }}>
+      <style dangerouslySetInnerHTML={{ __html: ANIM }} />
+
+      <div className="cd-fadein" style={{
+        width: '100%', maxWidth: 620,
+        background: C.base, border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden',
+      }}>
+        {/* Hero */}
+        <div style={{
+          padding: '28px 24px', textAlign: 'center',
+          background: C.surface, borderBottom: `1px solid ${C.border}`,
+        }}>
+          <div style={{ fontSize: 11, color: C.muted, letterSpacing: '0.15em', fontWeight: 500, marginBottom: 12 }}>
+            CLIENT DIRECTOR · RESULTADOS
+          </div>
+          <div style={{
+            fontSize: 72, fontWeight: 500, color: gradeColor, lineHeight: 1,
+            fontFamily: 'Georgia, serif',
+          }}>
+            {grade}
+          </div>
+          <div style={{ fontSize: 13, color: C.muted, marginTop: 10 }}>
+            {totalScore}% · Reunión con {profile.name}
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div style={{ padding: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 18 }}>
+            <Stat label="INTEL" value={`${discoveredKeys.length}/${totalClues}`} sub={intelLevel.toUpperCase()} color={C.role} />
+            <Stat
+              label="RESPUESTA"
+              value={selectedResponse?.correct ? '✓' : '✗'}
+              sub={selectedResponse?.correct ? 'Correcta' : 'Incorrecta'}
+              color={selectedResponse?.correct ? C.success : C.danger}
+            />
+            <Stat
+              label="PÁNICO"
+              value={`${panic}%`}
+              sub={panic <= 40 ? 'Bajo' : panic <= 70 ? 'Medio' : 'Alto'}
+              color={panic <= 40 ? C.success : panic <= 70 ? C.warning : C.danger}
+            />
           </div>
 
           {intelGathered.length > 0 && (
-            <div className="space-y-1">
-              <p className="text-xs text-zinc-500 font-mono">INTEL DESCUBIERTA:</p>
-              {intelGathered.map((intel, i) => (
-                <div key={i} className="px-3 py-1.5 bg-blue-950/20 border border-blue-900/20 rounded text-xs font-mono text-blue-300">
-                  {intel.value}
-                </div>
-              ))}
+            <div style={{ marginBottom: 18 }}>
+              <div style={{ fontSize: 11, color: C.muted, letterSpacing: '0.08em', fontWeight: 500, marginBottom: 8 }}>
+                INTEL DESCUBIERTA
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {intelGathered.map((intel, i) => (
+                  <div key={i} style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '8px 12px',
+                    background: `${C.role}10`, border: `1px solid ${C.role}33`,
+                    borderRadius: 6,
+                  }}>
+                    <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                      <path d="M3 8 L7 12 L13 5" stroke={C.role} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <span style={{ fontSize: 12, color: C.text, flex: 1 }}>
+                      {intel.value}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
-          <div className="flex gap-3 mt-4">
-            <button onClick={handleRestart} className="flex-1 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-sm font-mono rounded transition-colors">
-              🔄 Reintentar
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button onClick={onRestart} className="cd-btn" style={{
+              flex: 1, background: 'transparent', border: `1px solid ${C.borderStrong}`,
+              color: C.text, padding: '11px 14px', borderRadius: 6,
+              fontSize: 13, fontWeight: 500, fontFamily: 'inherit',
+            }}>
+              Otro cliente
             </button>
-            <button onClick={() => onComplete?.({ panic, correct: selectedResponse?.correct, intelLevel })} className="flex-1 py-2.5 bg-emerald-700 hover:bg-emerald-600 text-white text-sm font-mono rounded transition-colors">
-              ✓ Continuar
+            <button onClick={onContinue} className="cd-btn" style={{
+              flex: 1, background: C.role, color: C.roleDark,
+              border: `1px solid ${C.role}`, padding: '11px 14px', borderRadius: 6,
+              fontSize: 13, fontWeight: 500, fontFamily: 'inherit',
+            }}>
+              Continuar →
             </button>
           </div>
         </div>
       </div>
     </div>
+  );
+}
 
+function Stat({ label, value, sub, color }) {
+  return (
+    <div style={{
+      background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
+      padding: '12px 14px', textAlign: 'center',
+    }}>
+      <div style={{ fontFamily: 'ui-monospace, monospace', fontSize: 18, fontWeight: 500, color: color || C.text, lineHeight: 1 }}>
+        {value}
+      </div>
+      <div style={{ fontSize: 10, color: C.muted, letterSpacing: '0.08em', fontWeight: 500, marginTop: 6 }}>
+        {label}
+      </div>
+      {sub && (
+        <div style={{ fontSize: 10, color: C.hint, marginTop: 2 }}>
+          {sub}
+        </div>
+      )}
+    </div>
   );
 }
