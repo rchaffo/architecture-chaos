@@ -16,10 +16,10 @@
     "intervalo_qte_max_seg": 120
   },
   "roles": [
-    {
+   {
       "id": "project_manager",
-      "nombre": "Project Manager",
-      "alias_juego": "Triage Controller",
+      "nombre": "Client Director",
+      "alias_juego": "Director de Cliente",
       "color": "#6366F1",
       "color_avatar": "#818CF8",
       "descripcion": "Ordena la cola de tickets en el Backlog. Ajusta prioridades según urgencia e impacto.",

@@ -18,16 +18,16 @@
   "roles": [
     {
       "id": "project_manager",
-      "nombre": "Project Manager",
-      "alias_juego": "Triage Controller",
+      "nombre": "Client Director",
+      "alias_juego": "Director de Cliente",
       "color": "#6366F1",
       "color_avatar": "#818CF8",
-      "descripcion": "Ordena la cola de tickets en el Backlog. Ajusta prioridades según urgencia e impacto.",
+      "descripcion": "Visita la oficina del cliente, recopila intel observando objetos clave y maneja la reunión de crisis eligiendo la respuesta correcta según el perfil del cliente.",
       "responsabilidades": [
-        "Gestionar la cola de tickets (Backlog/Gantt)",
-        "Asignar prioridad Alta/Media/Baja a cada incidente",
-        "Mover tickets entre columnas: Backlog → En Progreso → Completado",
-        "Monitorear el tiempo global restante"
+        "Investigar la oficina del cliente clickeando objetos para descubrir pistas",
+        "Identificar urgencia, contexto político y nivel técnico de cada cliente",
+        "Elegir la respuesta correcta en la reunión usando la intel recopilada",
+        "Mantener bajo el medidor de pánico del cliente con respuestas alineadas"
       ],
       "estacion": "triage_station",
       "icono_forma": "hexagon"
